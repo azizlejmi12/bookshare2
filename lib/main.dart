@@ -1,7 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';  // ← Importe le fichier qu'on vient de corriger
 import 'screens/auth/login_screen.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,  // ← Utilise les options
+  );
+  
   runApp(const BookShareApp());
 }
 
@@ -17,7 +25,7 @@ class BookShareApp extends StatelessWidget {
         primaryColor: const Color(0xFF2C3E50),
         scaffoldBackgroundColor: const Color(0xFFF5F5F0),
       ),
-      home: const LoginScreen(), // Démarre ici !
+      home: const LoginScreen(),
     );
   }
 }

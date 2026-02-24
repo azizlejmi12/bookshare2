@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "422623714876",
+    "project_id": "bookshare-aziz",
+    "storage_bucket": "bookshare-aziz.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:422623714876:android:d445a1f14e2189df01ad39",
+        "android_client_info": {
+          "package_name": "com.example.bookshare"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDrlvDDPMbajQ2AfL2yBxRTaQZbLJF4ZCM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'register_screen.dart';
 import '../home_screen.dart';
 
@@ -12,40 +13,72 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
-
-  // 🔥 Variable pour afficher/masquer le mot de passe
   bool obscurePassword = true;
+  bool isLoading = false;
 
-  // 🔥 Fonction de validation
+  // 🔥 FONCTION DE CONNEXION FIREBASE
+  Future<void> login() async {
+    // Validation des champs
+    if (!validateFields()) return;
+
+    setState(() => isLoading = true);
+
+    try {
+      // 🔥 APPEL FIREBASE AUTH
+      await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: emailController.text.trim(),
+        password: passwordController.text,
+      );
+
+      // Succès ! Va vers Home
+      if (mounted) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const HomeScreen()),
+        );
+      }
+    } on FirebaseAuthException catch (e) {
+      // 🔥 GESTION DES ERREURS FIREBASE
+      String message = 'Erreur de connexion';
+      
+      if (e.code == 'user-not-found') {
+        message = 'Aucun utilisateur trouvé avec cet email';
+      } else if (e.code == 'wrong-password') {
+        message = 'Mot de passe incorrect';
+      } else if (e.code == 'invalid-email') {
+        message = 'Email invalide';
+      } else if (e.code == 'user-disabled') {
+        message = 'Ce compte a été désactivé';
+      }
+      
+      showError(message);
+    } catch (e) {
+      showError('Erreur : ${e.toString()}');
+    } finally {
+      if (mounted) setState(() => isLoading = false);
+    }
+  }
+
   bool validateFields() {
-    // Vérifie email vide
     if (emailController.text.trim().isEmpty) {
       showError('Veuillez entrer votre email');
       return false;
     }
-
-    // Vérifie format email simple (contient @ et .)
-    if (!emailController.text.contains('@') || !emailController.text.contains('.')) {
+    if (!emailController.text.contains('@')) {
       showError('Veuillez entrer un email valide');
       return false;
     }
-
-    // Vérifie mot de passe vide
     if (passwordController.text.isEmpty) {
       showError('Veuillez entrer votre mot de passe');
       return false;
     }
-
-    // Vérifie longueur mot de passe
     if (passwordController.text.length < 6) {
       showError('Le mot de passe doit faire au moins 6 caractères');
       return false;
     }
-
     return true;
   }
 
-  // 🔥 Affiche une erreur en bas de l'écran
   void showError(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -115,10 +148,10 @@ class _LoginScreenState extends State<LoginScreen> {
                     const SizedBox(height: 30),
 
                     // Email
-                    _buildEmailField(),
+                    _buildField('E-mail', 'votre@email.com', Icons.email, emailController),
                     const SizedBox(height: 20),
 
-                    // Mot de passe avec œil 👁️
+                    // Mot de passe
                     _buildPasswordField(),
                     const SizedBox(height: 30),
 
@@ -127,27 +160,31 @@ class _LoginScreenState extends State<LoginScreen> {
                       width: double.infinity,
                       height: 50,
                       child: ElevatedButton(
-                        onPressed: () {
-                          // 🔥 Vérifie avant de naviguer
-                          if (validateFields()) {
-                            Navigator.pushReplacement(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const HomeScreen(),
-                              ),
-                            );
-                          }
-                        },
+                        onPressed: isLoading ? null : login,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF2C3E50),
+                          disabledBackgroundColor: Colors.grey,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
                         ),
-                        child: const Text(
-                          'Se connecter',
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                        ),
+                        child: isLoading
+                          ? const Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    color: Colors.white,
+                                    strokeWidth: 2,
+                                  ),
+                                ),
+                                SizedBox(width: 12),
+                                Text('Connexion...', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                              ],
+                            )
+                          : const Text('Se connecter', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                       ),
                     ),
                     const SizedBox(height: 20),
@@ -155,12 +192,10 @@ class _LoginScreenState extends State<LoginScreen> {
                     // Lien créer compte
                     Center(
                       child: TextButton(
-                        onPressed: () {
+                        onPressed: isLoading ? null : () {
                           Navigator.push(
                             context,
-                            MaterialPageRoute(
-                              builder: (context) => const RegisterScreen(),
-                            ),
+                            MaterialPageRoute(builder: (context) => const RegisterScreen()),
                           );
                         },
                         child: const Text(
@@ -179,24 +214,21 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  // 🔥 Champ email avec validation visuelle
-  Widget _buildEmailField() {
+  Widget _buildField(String label, String hint, IconData icon, TextEditingController controller) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'E-mail',
-          style: TextStyle(fontSize: 14, color: Color(0xFF7F8C8D)),
-        ),
+        Text(label, style: const TextStyle(fontSize: 14, color: Color(0xFF7F8C8D))),
         const SizedBox(height: 8),
         TextField(
-          controller: emailController,
+          controller: controller,
           keyboardType: TextInputType.emailAddress,
+          enabled: !isLoading,
           decoration: InputDecoration(
-            hintText: 'votre@email.com',
-            prefixIcon: const Icon(Icons.email, color: Color(0xFF7F8C8D)),
+            hintText: hint,
+            prefixIcon: Icon(icon, color: const Color(0xFF7F8C8D)),
             filled: true,
-            fillColor: const Color(0xFFF5F5F0),
+            fillColor: isLoading ? Colors.grey.shade200 : const Color(0xFFF5F5F0),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide.none,
@@ -207,36 +239,30 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  // 🔥 Champ mot de passe avec œil pour afficher/masquer
   Widget _buildPasswordField() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Mot de passe',
-          style: TextStyle(fontSize: 14, color: Color(0xFF7F8C8D)),
-        ),
+        const Text('Mot de passe', style: TextStyle(fontSize: 14, color: Color(0xFF7F8C8D))),
         const SizedBox(height: 8),
         TextField(
           controller: passwordController,
-          obscureText: obscurePassword, // Cache ou montre le texte
+          obscureText: obscurePassword,
+          enabled: !isLoading,
           decoration: InputDecoration(
             hintText: '••••••••',
             prefixIcon: const Icon(Icons.lock, color: Color(0xFF7F8C8D)),
-            // 🔥 Icône œil à droite
             suffixIcon: IconButton(
               icon: Icon(
                 obscurePassword ? Icons.visibility_off : Icons.visibility,
                 color: const Color(0xFF7F8C8D),
               ),
-              onPressed: () {
-                setState(() {
-                  obscurePassword = !obscurePassword; // Inverse l'état
-                });
+              onPressed: isLoading ? null : () {
+                setState(() => obscurePassword = !obscurePassword);
               },
             ),
             filled: true,
-            fillColor: const Color(0xFFF5F5F0),
+            fillColor: isLoading ? Colors.grey.shade200 : const Color(0xFFF5F5F0),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide.none,
