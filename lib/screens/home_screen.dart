@@ -7,7 +7,7 @@ import '../widgets/emprunt_card.dart';
 import '../widgets/tab_selector.dart';
 import '../widgets/profile_menu_item.dart';
 import '../widgets/message_item.dart';
-
+import 'auth/login_screen.dart';
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -573,13 +573,41 @@ class ProfilContent extends StatelessWidget {
             onTap: () {},
           ),
           ProfileMenuItem(
-            icon: Icons.logout,
-            label: 'Déconnexion',
-            isLogout: true,  // Rouge !
-            onTap: () {
-              // Déconnecter l'utilisateur
-            },
+  icon: Icons.logout,
+  label: 'Déconnexion',
+  isLogout: true,
+  onTap: () {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Déconnexion'),
+        content: const Text('Voulez-vous vraiment vous déconnecter ?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Annuler'),
           ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const LoginScreen(),
+                ),
+                (route) => false,
+              );
+            },
+            child: const Text(
+              'Déconnexion',
+              style: TextStyle(color: Colors.red),
+            ),
+          ),
+        ],
+      ),
+    );
+  },
+),
         ],
       ),
     );

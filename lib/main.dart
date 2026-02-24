@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'screens/home_screen.dart';
+import 'screens/auth/login_screen.dart';
 
 void main() {
   runApp(const BookShareApp());
@@ -17,7 +17,7 @@ class BookShareApp extends StatelessWidget {
         primaryColor: const Color(0xFF2C3E50),
         scaffoldBackgroundColor: const Color(0xFFF5F5F0),
       ),
-      home: const HomeScreen(),
+      home: const LoginScreen(), // Démarre ici !
     );
   }
 }
