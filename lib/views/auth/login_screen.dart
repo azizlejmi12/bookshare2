@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
+import '../../views/home/home_screen.dart';
 import 'register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -34,11 +35,22 @@ class _LoginScreenState extends State<LoginScreen> {
       password: passwordController.text,
     );
 
-    if (!success && mounted) {
+    if (success && mounted) {
+      // Connexion réussie - navigue vers HomeScreen
+      debugPrint('📍 [LoginScreen] Navigation vers HomeScreen');
+      if (mounted) {
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (context) => const HomeScreen()),
+          (route) => false,
+        );
+      }
+      // Nettoie les champs
+      emailController.clear();
+      passwordController.clear();
+    } else if (!success && mounted) {
       // Affiche l'erreur du provider
       _showError(authProvider.errorMessage ?? 'Erreur de connexion');
     }
-    // Pas besoin de naviguer, le StreamBuilder dans main.dart s'en charge
   }
 
   bool _validateFields() {
@@ -144,7 +156,13 @@ class _LoginScreenState extends State<LoginScreen> {
                         const SizedBox(height: 30),
 
                         // Email
-                        _buildField('E-mail', 'votre@email.com', Icons.email, emailController, isLoading),
+                        _buildField(
+                          'E-mail',
+                          'votre@email.com',
+                          Icons.email,
+                          emailController,
+                          isLoading,
+                        ),
                         const SizedBox(height: 20),
 
                         // Mot de passe
@@ -177,10 +195,22 @@ class _LoginScreenState extends State<LoginScreen> {
                                         ),
                                       ),
                                       SizedBox(width: 12),
-                                      Text('Connexion...', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                                      Text(
+                                        'Connexion...',
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
                                     ],
                                   )
-                                : const Text('Se connecter', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                                : const Text(
+                                    'Se connecter',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
                           ),
                         ),
                         const SizedBox(height: 20),
@@ -193,10 +223,15 @@ class _LoginScreenState extends State<LoginScreen> {
                                 : () async {
                                     final result = await Navigator.push<bool>(
                                       context,
-                                      MaterialPageRoute(builder: (context) => const RegisterScreen()),
+                                      MaterialPageRoute(
+                                        builder: (context) =>
+                                            const RegisterScreen(),
+                                      ),
                                     );
                                     if (result == true && mounted) {
-                                      _showSuccess('Compte créé. Connectez-vous.');
+                                      _showSuccess(
+                                        'Compte créé. Connectez-vous.',
+                                      );
                                     }
                                   },
                             child: const Text(
@@ -217,11 +252,20 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  Widget _buildField(String label, String hint, IconData icon, TextEditingController controller, bool isLoading) {
+  Widget _buildField(
+    String label,
+    String hint,
+    IconData icon,
+    TextEditingController controller,
+    bool isLoading,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(fontSize: 14, color: Color(0xFF7F8C8D))),
+        Text(
+          label,
+          style: const TextStyle(fontSize: 14, color: Color(0xFF7F8C8D)),
+        ),
         const SizedBox(height: 8),
         TextField(
           controller: controller,
@@ -231,7 +275,9 @@ class _LoginScreenState extends State<LoginScreen> {
             hintText: hint,
             prefixIcon: Icon(icon, color: const Color(0xFF7F8C8D)),
             filled: true,
-            fillColor: isLoading ? Colors.grey.shade200 : const Color(0xFFF5F5F0),
+            fillColor: isLoading
+                ? Colors.grey.shade200
+                : const Color(0xFFF5F5F0),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide.none,
@@ -246,7 +292,10 @@ class _LoginScreenState extends State<LoginScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Mot de passe', style: TextStyle(fontSize: 14, color: Color(0xFF7F8C8D))),
+        const Text(
+          'Mot de passe',
+          style: TextStyle(fontSize: 14, color: Color(0xFF7F8C8D)),
+        ),
         const SizedBox(height: 8),
         TextField(
           controller: passwordController,
@@ -267,7 +316,9 @@ class _LoginScreenState extends State<LoginScreen> {
                     },
             ),
             filled: true,
-            fillColor: isLoading ? Colors.grey.shade200 : const Color(0xFFF5F5F0),
+            fillColor: isLoading
+                ? Colors.grey.shade200
+                : const Color(0xFFF5F5F0),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide.none,

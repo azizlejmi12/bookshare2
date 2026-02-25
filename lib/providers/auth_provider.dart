@@ -21,12 +21,10 @@ class AuthProvider with ChangeNotifier {
     // Écouter les changements d'état d'authentification
     _authService.authStateChanges.listen((User? firebaseUser) {
       if (firebaseUser != null) {
-        _currentUser = UserModel.fromFirebaseUser(
-          firebaseUser.uid,
-          firebaseUser.email!,
-          firebaseUser.displayName ?? 'Utilisateur',
+        _currentUser = UserModel.fromFirebaseUser(firebaseUser);
+        debugPrint(
+          '🔄 [AuthProvider] Utilisateur connecté: ${_currentUser!.email}',
         );
-        debugPrint('🔄 [AuthProvider] Utilisateur connecté: ${_currentUser!.email}');
       } else {
         _currentUser = null;
         debugPrint('🔄 [AuthProvider] Utilisateur déconnecté');
@@ -72,25 +70,20 @@ class AuthProvider with ChangeNotifier {
   }
 
   /// Connexion
-  Future<bool> signIn({
-    required String email,
-    required String password,
-  }) async {
+  Future<bool> signIn({required String email, required String password}) async {
     try {
       _setLoading(true);
       _clearError();
 
       debugPrint('🔑 [AuthProvider] Début connexion: $email');
 
-      final user = await _authService.signIn(
-        email: email,
-        password: password,
-      );
+      final user = await _authService.signIn(email: email, password: password);
 
       _currentUser = user;
-      debugPrint('✅ [AuthProvider] Connexion réussie');
-      
+      debugPrint('✅ [AuthProvider] Connexion réussie pour: ${user.email}');
+
       _setLoading(false);
+      notifyListeners();
       return true;
     } catch (e) {
       debugPrint('❌ [AuthProvider] Erreur connexion: $e');
@@ -117,9 +110,9 @@ class AuthProvider with ChangeNotifier {
     try {
       _setLoading(true);
       _clearError();
-      
+
       await _authService.resetPassword(email);
-      
+
       _setLoading(false);
       return true;
     } catch (e) {

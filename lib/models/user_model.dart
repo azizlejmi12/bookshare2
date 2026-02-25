@@ -1,3 +1,5 @@
+import 'package:firebase_auth/firebase_auth.dart';
+
 class UserModel {
   final String uid;
   final String email;
@@ -14,18 +16,17 @@ class UserModel {
   });
 
   // Convertir depuis Firebase User
-  factory UserModel.fromFirebaseUser(
-    String uid,
-    String email,
-    String name,
-  ) {
+  factory UserModel.fromFirebaseUser(User firebaseUser, {String? name}) {
     return UserModel(
-      uid: uid,
-      email: email,
-      name: name,
-      createdAt: DateTime.now(),
+      uid: firebaseUser.uid,
+      email: firebaseUser.email ?? '',
+      name: name ?? firebaseUser.displayName ?? 'Utilisateur',
+      photoUrl: firebaseUser.photoURL,
+      createdAt: firebaseUser.metadata.creationTime ?? DateTime.now(),
     );
   }
+
+  DateTime get memberSince => createdAt;
 
   // TODO: Ajouter Firestore quand nécessaire
   // factory UserModel.fromFirestore(DocumentSnapshot doc) { ... }

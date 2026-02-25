@@ -31,14 +31,16 @@ class AuthService {
         throw Exception('Impossible de créer l\'utilisateur');
       }
 
-      debugPrint('✅ [AuthService] Utilisateur créé: ${userCredential.user!.uid}');
+      debugPrint(
+        '✅ [AuthService] Utilisateur créé: ${userCredential.user!.uid}',
+      );
+
+      await userCredential.user!.updateDisplayName(name);
+      await userCredential.user!.reload();
+      final firebaseUser = _auth.currentUser ?? userCredential.user!;
 
       // Créer le modèle utilisateur
-      final userModel = UserModel.fromFirebaseUser(
-        userCredential.user!.uid,
-        email,
-        name,
-      );
+      final userModel = UserModel.fromFirebaseUser(firebaseUser, name: name);
 
       // TODO: Sauvegarder dans Firestore si nécessaire
       // await _saveUserToFirestore(userModel);
@@ -70,14 +72,14 @@ class AuthService {
         throw Exception('Impossible de se connecter');
       }
 
-      debugPrint('✅ [AuthService] Connexion réussie: ${userCredential.user!.email}');
+      debugPrint(
+        '✅ [AuthService] Connexion réussie: ${userCredential.user!.email}',
+      );
+
+      final firebaseUser = userCredential.user!;
 
       // Créer le modèle utilisateur
-      final userModel = UserModel.fromFirebaseUser(
-        userCredential.user!.uid,
-        userCredential.user!.email!,
-        userCredential.user!.displayName ?? 'Utilisateur',
-      );
+      final userModel = UserModel.fromFirebaseUser(firebaseUser);
 
       return userModel;
     } on FirebaseAuthException catch (e) {

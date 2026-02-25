@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../../providers/auth_provider.dart';
 import '../../widgets/bottom_nav.dart';
 import '../../widgets/book_card.dart';
 import '../../widgets/book_list_item.dart';
@@ -17,26 +19,26 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  int currentPage = 0;  // Page actuelle (0 = Home)
+  int currentPage = 0; // Page actuelle (0 = Home)
 
   // Liste des 5 écrans
   final List<Widget> pages = [
-    const HomeContent(),      // Page 0
+    const HomeContent(), // Page 0
     const CatalogueContent(), // Page 1
-    const EmpruntsContent(),  // Page 2
-    const MessagesContent(),  // Page 3
-    const ProfilContent(),    // Page 4
+    const EmpruntsContent(), // Page 2
+    const MessagesContent(), // Page 3
+    const ProfilContent(), // Page 4
   ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: pages[currentPage],  // Affiche la page actuelle
+      body: pages[currentPage], // Affiche la page actuelle
       bottomNavigationBar: BottomNav(
         currentIndex: currentPage,
         onTap: (index) {
           setState(() {
-            currentPage = index;  // Change de page
+            currentPage = index; // Change de page
           });
         },
       ),
@@ -52,7 +54,8 @@ class HomeContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SafeArea(
-      child: SingleChildScrollView(  // Pour défiler vers le bas
+      child: SingleChildScrollView(
+        // Pour défiler vers le bas
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -79,8 +82,7 @@ class HomeContent extends StatelessWidget {
                 ],
               ),
             ),
-            
-            
+
             // ===== BARRE DE RECHERCHE =====
             Container(
               color: Colors.white,
@@ -98,16 +100,13 @@ class HomeContent extends StatelessWidget {
                     SizedBox(width: 12),
                     Text(
                       'Rechercher un livre, auteur...',
-                      style: TextStyle(
-                        color: Color(0xFF7F8C8D),
-                        fontSize: 16,
-                      ),
+                      style: TextStyle(color: Color(0xFF7F8C8D), fontSize: 16),
                     ),
                   ],
                 ),
               ),
             ),
-            
+
             // ===== SECTION RECOMMANDÉS =====
             const Padding(
               padding: EdgeInsets.fromLTRB(20, 24, 20, 16),
@@ -120,7 +119,7 @@ class HomeContent extends StatelessWidget {
                 ),
               ),
             ),
-            
+
             // Carousel horizontal
             SizedBox(
               height: 320, // Hauteur fixe pour le carousel
@@ -151,7 +150,7 @@ class HomeContent extends StatelessWidget {
                 ],
               ),
             ),
-            
+
             // ===== SECTION NOUVEAUTÉS =====
             const Padding(
               padding: EdgeInsets.fromLTRB(20, 32, 20, 16),
@@ -164,7 +163,7 @@ class HomeContent extends StatelessWidget {
                 ),
               ),
             ),
-            
+
             // Liste verticale
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -185,7 +184,7 @@ class HomeContent extends StatelessWidget {
                 ],
               ),
             ),
-            
+
             const SizedBox(height: 20), // Espace en bas
           ],
         ),
@@ -222,7 +221,7 @@ class CatalogueContent extends StatelessWidget {
               ],
             ),
           ),
-          
+
           // ===== FILTRES =====
           Container(
             color: Colors.white,
@@ -240,7 +239,7 @@ class CatalogueContent extends StatelessWidget {
               ),
             ),
           ),
-          
+
           // ===== LISTE DES LIVRES =====
           Expanded(
             child: ListView(
@@ -289,7 +288,7 @@ class EmpruntsContent extends StatefulWidget {
 }
 
 class _EmpruntsContentState extends State<EmpruntsContent> {
-  int selectedTab = 0;  // 0 = En cours, 1 = Historique
+  int selectedTab = 0; // 0 = En cours, 1 = Historique
 
   @override
   Widget build(BuildContext context) {
@@ -315,18 +314,18 @@ class _EmpruntsContentState extends State<EmpruntsContent> {
               ],
             ),
           ),
-          
+
           // ===== ONGLETS =====
           TabSelector(
             tabs: const ['En cours (2)', 'Historique'],
             selectedIndex: selectedTab,
             onTap: (index) {
               setState(() {
-                selectedTab = index;  // Change l'onglet
+                selectedTab = index; // Change l'onglet
               });
             },
           ),
-          
+
           // ===== CONTENU =====
           Expanded(
             child: selectedTab == 0
@@ -338,14 +337,14 @@ class _EmpruntsContentState extends State<EmpruntsContent> {
                         title: 'Le Petit Prince',
                         author: 'Saint-Exupéry',
                         returnDate: '18/02/2024',
-                        isUrgent: true,  // Rouge !
+                        isUrgent: true, // Rouge !
                         gradientColors: [Color(0xFF667eea), Color(0xFF764ba2)],
                       ),
                       EmpruntCard(
                         title: '1984',
                         author: 'George Orwell',
                         returnDate: '25/02/2024',
-                        isUrgent: false,  // Vert
+                        isUrgent: false, // Vert
                         gradientColors: [Color(0xFFfa709a), Color(0xFFfee140)],
                       ),
                     ],
@@ -354,10 +353,7 @@ class _EmpruntsContentState extends State<EmpruntsContent> {
                 : const Center(
                     child: Text(
                       'Aucun historique',
-                      style: TextStyle(
-                        color: Color(0xFF7F8C8D),
-                        fontSize: 16,
-                      ),
+                      style: TextStyle(color: Color(0xFF7F8C8D), fontSize: 16),
                     ),
                   ),
           ),
@@ -390,7 +386,7 @@ class MessagesContent extends StatelessWidget {
               ),
             ),
           ),
-          
+
           // ===== BARRE DE RECHERCHE =====
           Container(
             color: Colors.white,
@@ -408,16 +404,13 @@ class MessagesContent extends StatelessWidget {
                   SizedBox(width: 12),
                   Text(
                     'Rechercher...',
-                    style: TextStyle(
-                      color: Color(0xFF7F8C8D),
-                      fontSize: 15,
-                    ),
+                    style: TextStyle(color: Color(0xFF7F8C8D), fontSize: 15),
                   ),
                 ],
               ),
             ),
           ),
-          
+
           // ===== LISTE DES CONVERSATIONS =====
           Expanded(
             child: ListView(
@@ -427,21 +420,21 @@ class MessagesContent extends StatelessWidget {
                   name: 'Marie',
                   message: 'Bonjour, le livre est disponible ?',
                   time: '10:30',
-                  unreadCount: 2,  // Non lu !
+                  unreadCount: 2, // Non lu !
                   onTap: () {},
                 ),
                 MessageItem(
                   name: 'Bibliothèque',
                   message: 'Votre livre doit être retourné avant le 18/02',
                   time: 'Hier',
-                  isAdmin: true,  // Orange
+                  isAdmin: true, // Orange
                   onTap: () {},
                 ),
                 MessageItem(
                   name: 'Paul',
                   message: 'Merci pour votre aide !',
                   time: 'Lun',
-                  onTap: () {},  // Lu (pas de badge)
+                  onTap: () {}, // Lu (pas de badge)
                 ),
                 MessageItem(
                   name: 'Sophie',
@@ -463,154 +456,170 @@ class ProfilContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: Column(
-        children: [
-          // ===== HEADER =====
-          Container(
-            color: Colors.white,
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            child: const Center(
-              child: Text(
-                'Mon Profil',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF2C3E50),
-                ),
-              ),
-            ),
-          ),
-          
-          // ===== SECTION PROFIL (avatar + infos) =====
-          Container(
-            color: Colors.white,
-            padding: const EdgeInsets.all(32),
+    return Consumer<AuthProvider>(
+      builder: (context, auth, child) {
+        final user = auth.currentUser;
+
+        return SafeArea(
+          child: SingleChildScrollView(
             child: Column(
               children: [
-                // Avatar
+                // ===== HEADER =====
                 Container(
-                  width: 100,
-                  height: 100,
-                  decoration: const BoxDecoration(
-                    color: Color(0xFF2C3E50),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.person,
-                    size: 50,
-                    color: Colors.white,
-                  ),
-                ),
-                
-                const SizedBox(height: 16),
-                
-                // Nom
-                const Text(
-                  'Aziz Lejmi',
-                  style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF2C3E50),
-                  ),
-                ),
-                
-                const SizedBox(height: 4),
-                
-                // Email
-                const Text(
-                  'azizlejmi@email.com',
-                  style: TextStyle(
-                    fontSize: 15,
-                    color: Color(0xFF7F8C8D),
-                  ),
-                ),
-                
-                const SizedBox(height: 12),
-                
-                // Badge "Membre depuis"
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF27AE60),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: const Text(
-                    'Membre depuis 2024',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
+                  color: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  child: const Center(
+                    child: Text(
+                      'Mon Profil',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF2C3E50),
+                      ),
                     ),
                   ),
+                ),
+
+                // ===== SECTION PROFIL (avatar + infos) =====
+                Container(
+                  color: Colors.white,
+                  padding: const EdgeInsets.all(32),
+                  child: Column(
+                    children: [
+                      // Avatar
+                      Container(
+                        width: 100,
+                        height: 100,
+                        decoration: const BoxDecoration(
+                          color: Color(0xFF2C3E50),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.person,
+                          size: 50,
+                          color: Colors.white,
+                        ),
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      // Nom
+                      Text(
+                        user?.name ?? 'Utilisateur',
+                        style: const TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF2C3E50),
+                        ),
+                      ),
+
+                      const SizedBox(height: 4),
+
+                      // Email
+                      Text(
+                        user?.email ?? '',
+                        style: const TextStyle(
+                          fontSize: 15,
+                          color: Color(0xFF7F8C8D),
+                        ),
+                      ),
+
+                      const SizedBox(height: 12),
+
+                      // Badge "Membre depuis"
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF27AE60),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          'Membre depuis ${user?.memberSince.year ?? ''}',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+
+                // ===== MENU =====
+                ProfileMenuItem(
+                  icon: Icons.menu_book,
+                  label: 'Mes emprunts',
+                  onTap: () {
+                    // Naviguer vers Emprunts
+                  },
+                ),
+                ProfileMenuItem(
+                  icon: Icons.notifications_outlined,
+                  label: 'Notifications',
+                  onTap: () {
+                    // Naviguer vers Notifications
+                  },
+                ),
+
+                const SizedBox(height: 16),
+
+                ProfileMenuItem(
+                  icon: Icons.help_outline,
+                  label: 'Aide & Support',
+                  onTap: () {},
+                ),
+                ProfileMenuItem(
+                  icon: Icons.logout,
+                  label: 'Déconnexion',
+                  isLogout: true,
+                  onTap: () {
+                    showDialog(
+                      context: context,
+                      builder: (dialogContext) => AlertDialog(
+                        title: const Text('Déconnexion'),
+                        content: const Text(
+                          'Voulez-vous vraiment vous déconnecter ?',
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(dialogContext),
+                            child: const Text('Annuler'),
+                          ),
+                          TextButton(
+                            onPressed: () async {
+                              Navigator.pop(dialogContext);
+                              await auth.signOut();
+                              if (context.mounted) {
+                                Navigator.pushAndRemoveUntil(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => const LoginScreen(),
+                                  ),
+                                  (route) => false,
+                                );
+                              }
+                            },
+                            child: const Text(
+                              'Déconnexion',
+                              style: TextStyle(color: Colors.red),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
                 ),
               ],
             ),
           ),
-          
-          const SizedBox(height: 16),
-          
-          // ===== MENU =====
-          ProfileMenuItem(
-            icon: Icons.menu_book,
-            label: 'Mes emprunts',
-            onTap: () {
-              // Naviguer vers Emprunts
-            },
-          ),
-          ProfileMenuItem(
-            icon: Icons.notifications_outlined,
-            label: 'Notifications',
-            onTap: () {
-              // Naviguer vers Notifications
-            },
-          ),
-          
-          const SizedBox(height: 16),
-          
-          ProfileMenuItem(
-            icon: Icons.help_outline,
-            label: 'Aide & Support',
-            onTap: () {},
-          ),
-          ProfileMenuItem(
-  icon: Icons.logout,
-  label: 'Déconnexion',
-  isLogout: true,
-  onTap: () {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Déconnexion'),
-        content: const Text('Voulez-vous vraiment vous déconnecter ?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Annuler'),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              Navigator.pushAndRemoveUntil(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const LoginScreen(),
-                ),
-                (route) => false,
-              );
-            },
-            child: const Text(
-              'Déconnexion',
-              style: TextStyle(color: Colors.red),
-            ),
-          ),
-        ],
-      ),
-    );
-  },
-),
-        ],
-      ),
+        );
+      },
     );
   }
 }
