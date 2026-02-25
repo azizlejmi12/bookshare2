@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
-import '../widgets/bottom_nav.dart';
-import '../widgets/book_card.dart';
-import '../widgets/book_list_item.dart';
-import '../widgets/category_chip.dart';
-import '../widgets/emprunt_card.dart';
-import '../widgets/tab_selector.dart';
-import '../widgets/profile_menu_item.dart';
-import '../widgets/message_item.dart';
-import 'auth/login_screen.dart';
+import '../../widgets/bottom_nav.dart';
+import '../../widgets/book_card.dart';
+import '../../widgets/book_list_item.dart';
+import '../../widgets/category_chip.dart';
+import '../../widgets/emprunt_card.dart';
+import '../../widgets/tab_selector.dart';
+import '../../widgets/profile_menu_item.dart';
+import '../../widgets/message_item.dart';
+import '../auth/login_screen.dart';
+
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
