@@ -1,56 +1,46 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class BookModel {
   final String id;
   final String title;
   final String author;
-  final String? coverUrl;
-  final String? description;
-  final String category;
-  final String ownerId;
-  final String ownerName;
+  final String genre;
   final bool isAvailable;
-  final DateTime createdAt;
+  final String? coverUrl;
+  final DateTime? createdAt;
 
   BookModel({
     required this.id,
     required this.title,
     required this.author,
-    this.coverUrl,
-    this.description,
-    required this.category,
-    required this.ownerId,
-    required this.ownerName,
+    required this.genre,
     this.isAvailable = true,
-    required this.createdAt,
+    this.coverUrl,
+    this.createdAt,
   });
 
-  // TODO: Ajouter Firestore quand nécessaire
-  // factory BookModel.fromFirestore(DocumentSnapshot doc) { ... }
-  // Map<String, dynamic> toFirestore() { ... }
-
-  // Copier avec modifications
-  BookModel copyWith({
-    String? id,
-    String? title,
-    String? author,
-    String? coverUrl,
-    String? description,
-    String? category,
-    String? ownerId,
-    String? ownerName,
-    bool? isAvailable,
-    DateTime? createdAt,
-  }) {
+  // Factory depuis Firestore
+  factory BookModel.fromFirestore(Map<String, dynamic> data, String id) {
     return BookModel(
-      id: id ?? this.id,
-      title: title ?? this.title,
-      author: author ?? this.author,
-      coverUrl: coverUrl ?? this.coverUrl,
-      description: description ?? this.description,
-      category: category ?? this.category,
-      ownerId: ownerId ?? this.ownerId,
-      ownerName: ownerName ?? this.ownerName,
-      isAvailable: isAvailable ?? this.isAvailable,
-      createdAt: createdAt ?? this.createdAt,
+      id: id,
+      title: data['title'] ?? '',
+      author: data['author'] ?? '',
+      genre: data['genre'] ?? '',
+      isAvailable: data['isAvailable'] ?? true,
+      coverUrl: data['coverUrl'],
+      createdAt: (data['createdAt'] as Timestamp?)?.toDate(),
     );
+  }
+
+  // Convertir en Map pour Firestore
+  Map<String, dynamic> toFirestore() {
+    return {
+      'title': title,
+      'author': author,
+      'genre': genre,
+      'isAvailable': isAvailable,
+      'coverUrl': coverUrl,
+      'createdAt': createdAt != null ? Timestamp.fromDate(createdAt!) : null,
+    };
   }
 }
