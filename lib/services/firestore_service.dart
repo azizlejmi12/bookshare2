@@ -57,6 +57,7 @@ class FirestoreService {
       name: data['name'] ?? '',
       email: data['email'] ?? '',
       createdAt: (data['createdAt'] as Timestamp).toDate(),
+      isAdmin: data['isAdmin'] ?? false,
     );
   }
 
@@ -97,5 +98,56 @@ class FirestoreService {
         };
       }).toList();
     });
+  }
+    // ==================== ADMIN ====================
+
+  // Récupérer tous les utilisateurs (pour admin)
+  Stream<List<UserModel>> getAllUsers() {
+    return _db.collection('users').snapshots().map((snapshot) {
+      return snapshot.docs.map((doc) {
+        return UserModel.fromFirestore(doc.data(), doc.id);
+      }).toList();
+    });
+  }
+
+  // Promouvoir un utilisateur en admin
+  Future<void> promoteToAdmin(String userId) async {
+    await _db.collection('users').doc(userId).update({
+      'isAdmin': true,
+    });
+  }
+
+  // Rétrograder un admin en utilisateur normal
+  Future<void> demoteFromAdmin(String userId) async {
+    await _db.collection('users').doc(userId).update({
+      'isAdmin': false,
+    });
+  }
+
+  // Ajouter un livre (admin)
+  Future<void> addBook({
+    required String title,
+    required String author,
+    required String genre,
+  }) async {
+    await _db.collection('books').add({
+      'title': title,
+      'author': author,
+      'genre': genre,
+      'isAvailable': true,
+      'createdAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  // Modifier disponibilité d'un livre
+  Future<void> toggleBookAvailability(String bookId, bool isAvailable) async {
+    await _db.collection('books').doc(bookId).update({
+      'isAvailable': isAvailable,
+    });
+  }
+
+  // Supprimer un livre
+  Future<void> deleteBook(String bookId) async {
+    await _db.collection('books').doc(bookId).delete();
   }
 }

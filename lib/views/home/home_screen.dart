@@ -10,7 +10,7 @@ import '../../widgets/tab_selector.dart';
 import '../../widgets/profile_menu_item.dart';
 import '../../widgets/message_item.dart';
 import '../auth/login_screen.dart';
-
+import '../../providers/book_provider.dart';
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -48,27 +48,40 @@ class _HomeScreenState extends State<HomeScreen> {
 
 // ===== CONTENU DE CHAQUE PAGE =====
 
-class HomeContent extends StatelessWidget {
+class HomeContent extends StatefulWidget {
   const HomeContent({super.key});
 
   @override
+  State<HomeContent> createState() => _HomeContentState();
+}
+
+class _HomeContentState extends State<HomeContent> {
+  @override
+  void initState() {
+    super.initState();
+    // Charge les livres au démarrage
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<BookProvider>().loadBooks();
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: SingleChildScrollView(
-        // Pour défiler vers le bas
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // ===== HEADER BLEU =====
-            Container(
-              color: const Color(0xFF2C3E50),
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-              child: Row(
-                children: const [
-                  SizedBox(width: 24),
-                  Expanded(
-                    child: Center(
-                      child: Text(
+    return Consumer<BookProvider>(
+      builder: (context, bookProvider, child) {
+        return SafeArea(
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header bleu
+                Container(
+                  color: const Color(0xFF2C3E50),
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
                         '📚 BookShare',
                         style: TextStyle(
                           color: Colors.white,
@@ -76,120 +89,121 @@ class HomeContent extends StatelessWidget {
                           fontWeight: FontWeight.bold,
                         ),
                       ),
+                      const Icon(Icons.notifications, color: Colors.white),
+                    ],
+                  ),
+                ),
+
+                // Barre de recherche
+                Container(
+                  color: Colors.white,
+                  padding: const EdgeInsets.all(16),
+                  child: Container(
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF5F5F0),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Row(
+                      children: [
+                        SizedBox(width: 16),
+                        Icon(Icons.search, color: Color(0xFF7F8C8D)),
+                        SizedBox(width: 12),
+                        Text(
+                          'Rechercher un livre, auteur...',
+                          style: TextStyle(
+                            color: Color(0xFF7F8C8D),
+                            fontSize: 16,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  Icon(Icons.notifications, color: Colors.white),
-                ],
-              ),
-            ),
-
-            // ===== BARRE DE RECHERCHE =====
-            Container(
-              color: Colors.white,
-              padding: const EdgeInsets.all(16),
-              child: Container(
-                height: 44,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF5F5F0),
-                  borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Row(
-                  children: [
-                    SizedBox(width: 16),
-                    Icon(Icons.search, color: Color(0xFF7F8C8D)),
-                    SizedBox(width: 12),
-                    Text(
-                      'Rechercher un livre, auteur...',
-                      style: TextStyle(color: Color(0xFF7F8C8D), fontSize: 16),
+
+                // Section RECOMMANDÉS (données Firestore)
+                const Padding(
+                  padding: EdgeInsets.fromLTRB(20, 24, 20, 16),
+                  child: Text(
+                    '📚 Recommandés',
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF2C3E50),
                     ),
-                  ],
+                  ),
                 ),
-              ),
-            ),
 
-            // ===== SECTION RECOMMANDÉS =====
-            const Padding(
-              padding: EdgeInsets.fromLTRB(20, 24, 20, 16),
-              child: Text(
-                '📚 Recommandés',
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF2C3E50),
+                // Carousel avec vrais livres
+                SizedBox(
+                  height: 320,
+                  child: bookProvider.isLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : ListView(
+                        scrollDirection: Axis.horizontal,
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        children: bookProvider.recommendedBooks.map((book) {
+                          return Padding(
+                            padding: const EdgeInsets.only(right: 16),
+                            child: BookCard(
+                              title: book.title,
+                              author: book.author,
+                              isAvailable: book.isAvailable,
+                              gradientColors: _getGradientForGenre(book.genre),
+                            ),
+                          );
+                        }).toList(),
+                      ),
                 ),
-              ),
-            ),
 
-            // Carousel horizontal
-            SizedBox(
-              height: 320, // Hauteur fixe pour le carousel
-              child: ListView(
-                scrollDirection: Axis.horizontal, // Défilement horizontal
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                children: const [
-                  BookCard(
-                    title: 'Le Petit Prince',
-                    author: 'Saint-Exupéry',
-                    isAvailable: true,
-                    gradientColors: [Color(0xFF667eea), Color(0xFF764ba2)],
+                // Section NOUVEAUTÉS
+                const Padding(
+                  padding: EdgeInsets.fromLTRB(20, 32, 20, 16),
+                  child: Text(
+                    '✨ Nouveautés',
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF2C3E50),
+                    ),
                   ),
-                  SizedBox(width: 16), // Espace entre cartes
-                  BookCard(
-                    title: '1984',
-                    author: 'George Orwell',
-                    isAvailable: false,
-                    gradientColors: [Color(0xFFfa709a), Color(0xFFfee140)],
-                  ),
-                  SizedBox(width: 16),
-                  BookCard(
-                    title: 'Dune',
-                    author: 'Frank Herbert',
-                    isAvailable: true,
-                    gradientColors: [Color(0xFFa8edea), Color(0xFFfed6e3)],
-                  ),
-                ],
-              ),
-            ),
-
-            // ===== SECTION NOUVEAUTÉS =====
-            const Padding(
-              padding: EdgeInsets.fromLTRB(20, 32, 20, 16),
-              child: Text(
-                '✨ Nouveautés',
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF2C3E50),
                 ),
-              ),
-            ),
 
-            // Liste verticale
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Column(
-                children: const [
-                  BookListItem(
-                    title: 'Harry Potter à l\'école des sorciers',
-                    author: 'J.K. Rowling',
-                    isAvailable: true,
-                    gradientColors: [Color(0xFF667eea), Color(0xFF764ba2)],
-                  ),
-                  BookListItem(
-                    title: 'Le Seigneur des Anneaux',
-                    author: 'J.R.R. Tolkien',
-                    isAvailable: false,
-                    gradientColors: [Color(0xFFffecd2), Color(0xFFfcb69f)],
-                  ),
-                ],
-              ),
-            ),
+                // Liste avec vrais livres
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: bookProvider.isLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : Column(
+                        children: bookProvider.books.take(3).map((book) {
+                          return BookListItem(
+                            title: book.title,
+                            author: book.author,
+                            isAvailable: book.isAvailable,
+                            gradientColors: _getGradientForGenre(book.genre),
+                          );
+                        }).toList(),
+                      ),
+                ),
 
-            const SizedBox(height: 20), // Espace en bas
-          ],
-        ),
-      ),
+                const SizedBox(height: 20),
+              ],
+            ),
+          ),
+        );
+      },
     );
+  }
+
+  List<Color> _getGradientForGenre(String genre) {
+    switch (genre) {
+      case 'Roman':
+        return [const Color(0xFF667eea), const Color(0xFF764ba2)];
+      case 'Science-fiction':
+        return [const Color(0xFFfa709a), const Color(0xFFfee140)];
+      default:
+        return [const Color(0xFFa8edea), const Color(0xFFfed6e3)];
+    }
   }
 }
 
@@ -537,7 +551,7 @@ class ProfilContent extends StatelessWidget {
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(
-                          'Membre depuis ${user?.memberSince.year ?? ''}',
+                          'Membre depuis ${user?.createdAt.year ?? ''}',
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 13,

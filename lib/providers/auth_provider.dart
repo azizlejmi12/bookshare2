@@ -2,10 +2,12 @@ import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/user_model.dart';
 import '../services/auth_service.dart';
+import '../services/firestore_service.dart';
 
 /// Provider pour gérer l'état d'authentification
 class AuthProvider with ChangeNotifier {
   final AuthService _authService = AuthService();
+  final FirestoreService _firestoreService = FirestoreService();
 
   UserModel? _currentUser;
   bool _isLoading = false;
@@ -19,11 +21,23 @@ class AuthProvider with ChangeNotifier {
 
   AuthProvider() {
     // Écouter les changements d'état d'authentification
-    _authService.authStateChanges.listen((User? firebaseUser) {
+    _authService.authStateChanges.listen((User? firebaseUser) async {
       if (firebaseUser != null) {
-        _currentUser = UserModel.fromFirebaseUser(firebaseUser);
+        // Récupérer depuis Firestore pour obtenir isAdmin
+        _currentUser = await _firestoreService.getUser(firebaseUser.uid);
+        
+        // Fallback si pas dans Firestore
+        if (_currentUser == null) {
+          _currentUser = UserModel(
+            uid: firebaseUser.uid,
+            name: firebaseUser.displayName ?? 'Utilisateur',
+            email: firebaseUser.email ?? '',
+            createdAt: DateTime.now(),
+            isAdmin: false,
+          );
+        }
         debugPrint(
-          '🔄 [AuthProvider] Utilisateur connecté: ${_currentUser!.email}',
+          '🔄 [AuthProvider] Utilisateur connecté: ${_currentUser!.email} (isAdmin: ${_currentUser!.isAdmin})',
         );
       } else {
         _currentUser = null;

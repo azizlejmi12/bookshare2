@@ -1,51 +1,66 @@
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class UserModel {
   final String uid;
-  final String email;
   final String name;
-  final String? photoUrl;
+  final String email;
   final DateTime createdAt;
+  final bool isAdmin; // ← NOUVEAU
 
   UserModel({
     required this.uid,
-    required this.email,
     required this.name,
-    this.photoUrl,
+    required this.email,
     required this.createdAt,
+    this.isAdmin = false, // ← Par défaut, pas admin
   });
 
-  // Convertir depuis Firebase User
-  factory UserModel.fromFirebaseUser(User firebaseUser, {String? name}) {
+  // Factory depuis Firestore
+  factory UserModel.fromFirestore(Map<String, dynamic> data, String uid) {
     return UserModel(
-      uid: firebaseUser.uid,
-      email: firebaseUser.email ?? '',
-      name: name ?? firebaseUser.displayName ?? 'Utilisateur',
-      photoUrl: firebaseUser.photoURL,
-      createdAt: firebaseUser.metadata.creationTime ?? DateTime.now(),
+      uid: uid,
+      name: data['name'] ?? '',
+      email: data['email'] ?? '',
+      createdAt: (data['createdAt'] as Timestamp).toDate(),
+      isAdmin: data['isAdmin'] ?? false, // ← NOUVEAU
     );
   }
 
-  DateTime get memberSince => createdAt;
+  // Factory depuis Firebase Auth
+  factory UserModel.fromFirebaseUser(String uid, String email, String name) {
+    return UserModel(
+      uid: uid,
+      name: name,
+      email: email,
+      createdAt: DateTime.now(),
+      isAdmin: false, // ← Par défaut
+    );
+  }
 
-  // TODO: Ajouter Firestore quand nécessaire
-  // factory UserModel.fromFirestore(DocumentSnapshot doc) { ... }
-  // Map<String, dynamic> toFirestore() { ... }
+  // Convertir en Map pour Firestore
+  Map<String, dynamic> toFirestore() {
+    return {
+      'name': name,
+      'email': email,
+      'createdAt': Timestamp.fromDate(createdAt),
+      'isAdmin': isAdmin, // ← NOUVEAU
+    };
+  }
 
-  // Copier avec modifications
+  // Méthode copyWith pour modifications
   UserModel copyWith({
     String? uid,
-    String? email,
     String? name,
-    String? photoUrl,
+    String? email,
     DateTime? createdAt,
+    bool? isAdmin,
   }) {
     return UserModel(
       uid: uid ?? this.uid,
-      email: email ?? this.email,
       name: name ?? this.name,
-      photoUrl: photoUrl ?? this.photoUrl,
+      email: email ?? this.email,
       createdAt: createdAt ?? this.createdAt,
+      isAdmin: isAdmin ?? this.isAdmin,
     );
   }
 }

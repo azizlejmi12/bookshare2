@@ -1,10 +1,12 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart' show debugPrint;
 import '../models/user_model.dart';
+import 'firestore_service.dart';
 
 /// Service qui encapsule toutes les opérations Firebase Auth
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirestoreService _firestoreService = FirestoreService();
 
   // Stream de l'utilisateur connecté
   Stream<User?> get authStateChanges => _auth.authStateChanges();
@@ -40,7 +42,13 @@ class AuthService {
       final firebaseUser = _auth.currentUser ?? userCredential.user!;
 
       // Créer le modèle utilisateur
-      final userModel = UserModel.fromFirebaseUser(firebaseUser, name: name);
+      final userModel = UserModel(
+        uid: firebaseUser.uid,
+        name: name,
+        email: firebaseUser.email ?? '',
+        createdAt: DateTime.now(),
+        isAdmin: false,
+      );
 
       // TODO: Sauvegarder dans Firestore si nécessaire
       // await _saveUserToFirestore(userModel);
@@ -78,8 +86,19 @@ class AuthService {
 
       final firebaseUser = userCredential.user!;
 
-      // Créer le modèle utilisateur
-      final userModel = UserModel.fromFirebaseUser(firebaseUser);
+      // Récupérer l'utilisateur depuis Firestore pour avoir isAdmin
+      UserModel? userModel = await _firestoreService.getUser(firebaseUser.uid);
+      
+      // Si pas dans Firestore, créer un nouveau
+      if (userModel == null) {
+        userModel = UserModel(
+          uid: firebaseUser.uid,
+          name: firebaseUser.displayName ?? 'Utilisateur',
+          email: firebaseUser.email ?? '',
+          createdAt: DateTime.now(),
+          isAdmin: false,
+        );
+      }
 
       return userModel;
     } on FirebaseAuthException catch (e) {
