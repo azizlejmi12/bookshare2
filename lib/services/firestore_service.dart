@@ -150,4 +150,20 @@ class FirestoreService {
   Future<void> deleteBook(String bookId) async {
     await _db.collection('books').doc(bookId).delete();
   }
+  // Mettre à jour un utilisateur
+Future<void> updateUser({
+  required String uid,
+  required String name,
+  required String email,
+}) async {
+  await _db.collection('users').doc(uid).update({
+    'name': name,
+    'email': email,
+  });
+}
+
+// Supprimer un utilisateur
+Future<void> deleteUser(String uid) async {
+  await _db.collection('users').doc(uid).delete();
+}
 }
