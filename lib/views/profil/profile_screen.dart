@@ -12,12 +12,21 @@ class ProfileScreen extends StatelessWidget {
     return Consumer<AuthProvider>(
       builder: (context, auth, child) {
         final user = auth.currentUser;
-
+        print('╔════════════════════════════════════╗');
+        print('║ DEBUG PROFILE SCREEN               ║');
+        print('╠════════════════════════════════════╣');
+        print('║ user?.name: ${user?.name}          ║');
+        print('║ user?.email: ${user?.email}        ║');
+        print('║ user?.isAdmin: ${user?.isAdmin}    ║');
+        print('║ runtimeType: ${user?.isAdmin.runtimeType} ║');
+        print('║ isAdmin == true: ${user?.isAdmin == true} ║');
+        print('╚════════════════════════════════════╝');
         return SafeArea(
-          child: Column(
-            children: [
-              // Header
-              Container(
+          child: SingleChildScrollView(
+            child: Column(
+              children: [
+                // Header
+                Container(
                 color: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 child: const Center(
@@ -63,7 +72,7 @@ class ProfileScreen extends StatelessWidget {
                         color: Color(0xFF2C3E50),
                       ),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 8),
 
                     // Email dynamique
                     Text(
@@ -73,29 +82,65 @@ class ProfileScreen extends StatelessWidget {
                         color: Color(0xFF7F8C8D),
                       ),
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 8),
 
-                    // Badge membre
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF27AE60),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Text(
-                        'Membre depuis ${user?.createdAt.year ?? DateTime.now().year}',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500,
+                    // Badges
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        // Badge membre
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF27AE60),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            'Membre depuis ${user?.createdAt.year ?? DateTime.now().year}',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
                         ),
-                      ),
+                        // Badge Admin conditionnel
+                        if (user?.isAdmin == true) ...[
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFE74C3C),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.admin_panel_settings,
+                                  color: Colors.white,
+                                  size: 16,
+                                ),
+                                SizedBox(width: 4),
+                                Text(
+                                  'Admin',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
                   ],
                 ),
               ),
 
-              const SizedBox(height: 16),
+              const SizedBox(height: 8),
 
               // Menu
               _buildMenuItem(
@@ -108,7 +153,7 @@ class ProfileScreen extends StatelessWidget {
                 label: 'Notifications',
                 onTap: () {},
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 8),
               _buildMenuItem(
                 icon: Icons.help_outline,
                 label: 'Aide & Support',
@@ -116,17 +161,21 @@ class ProfileScreen extends StatelessWidget {
               ),
               
               // Section Admin (affiche toujours pour debug)
-              _buildMenuItem(
-                icon: Icons.admin_panel_settings,
-                label: 'Administration (isAdmin: ${user?.isAdmin})',
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const AdminScreen()),
-                  );
-                },
-              ),
-              const SizedBox(height: 16),
+              // Dans le Column des enfants, après "Aide & Support" :
+if (user?.isAdmin == true) ...[
+  _buildMenuItem(
+    icon: Icons.admin_panel_settings,
+    label: 'Administration',
+    onTap: () {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const AdminScreen()),
+      );
+    },
+  ),
+  const SizedBox(height: 16),
+],
+              const SizedBox(height: 18),
               
               // Déconnexion
               _buildMenuItem(
@@ -145,6 +194,7 @@ class ProfileScreen extends StatelessWidget {
                 },
               ),
             ],
+          ),
           ),
         );
       },

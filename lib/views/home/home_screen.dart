@@ -1,3 +1,4 @@
+import 'package:bookshare/views/profil/profile_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
@@ -27,7 +28,7 @@ class _HomeScreenState extends State<HomeScreen> {
     const CatalogueContent(), // Page 1
     const EmpruntsContent(), // Page 2
     const MessagesContent(), // Page 3
-    const ProfilContent(), // Page 4
+    const ProfileScreen(), // Page 4
   ];
 
   @override
