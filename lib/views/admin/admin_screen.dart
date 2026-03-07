@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart' as fb_auth;
+import '../../firebase_options.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/book_provider.dart';
 import '../auth/login_screen.dart';
 import '../../services/firestore_service.dart';
 import '../../providers/users_provider.dart';
 import '../../models/user_model.dart';
-import '../../services/auth_service.dart';
 
 class AdminScreen extends StatelessWidget {
   const AdminScreen({super.key});
@@ -161,16 +163,41 @@ class _UsersTabState extends State<UsersTab> {
                 return;
               }
 
-              // 🔥 CRÉE L'UTILISATEUR VIA AUTH SERVICE
+              // 🔥 CRÉE L'UTILISATEUR SANS DÉCONNECTER L'ADMIN
+              // Solution : instance Firebase secondaire
               try {
-                final authService = AuthService();
-                print('🔥 Appel signUp avec: ${emailController.text}');
+                print('🔥 Création utilisateur: ${emailController.text}');
 
-                await authService.signUp(
+                // Créer une instance Firebase secondaire
+                final secondaryApp = await Firebase.initializeApp(
+                  name: 'SecondaryApp-${DateTime.now().millisecondsSinceEpoch}',
+                  options: DefaultFirebaseOptions.currentPlatform,
+                );
+                
+                final secondaryAuth = fb_auth.FirebaseAuth.instanceFor(app: secondaryApp);
+                
+                // Créer l'utilisateur avec l'instance secondaire
+                final userCredential = await secondaryAuth.createUserWithEmailAndPassword(
                   email: emailController.text.trim(),
                   password: passwordController.text,
-                  name: nameController.text.trim(),
                 );
+
+                // Mettre à jour le displayName
+                await userCredential.user?.updateDisplayName(nameController.text.trim());
+
+                // Sauvegarder dans Firestore
+                final userModel = UserModel(
+                  uid: userCredential.user!.uid,
+                  name: nameController.text.trim(),
+                  email: emailController.text.trim(),
+                  createdAt: DateTime.now(),
+                  isAdmin: false,
+                );
+                
+                await FirestoreService().saveUser(userModel);
+
+                // Nettoyer l'instance secondaire
+                await secondaryApp.delete();
 
                 print('✅ Utilisateur créé avec succès');
                 

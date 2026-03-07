@@ -24,18 +24,22 @@ class AuthProvider with ChangeNotifier {
     _authService.authStateChanges.listen((User? firebaseUser) async {
       if (firebaseUser != null) {
         // Récupérer depuis Firestore pour obtenir isAdmin
-        _currentUser = await _firestoreService.getUser(firebaseUser.uid);
+        UserModel? user = await _firestoreService.getUser(firebaseUser.uid);
         
-        // Fallback si pas dans Firestore
-        if (_currentUser == null) {
-          _currentUser = UserModel(
+        // 🔥 Si pas dans Firestore, créer automatiquement
+        if (user == null) {
+          user = UserModel(
             uid: firebaseUser.uid,
             name: firebaseUser.displayName ?? 'Utilisateur',
             email: firebaseUser.email ?? '',
             createdAt: DateTime.now(),
             isAdmin: false,
           );
+          await _firestoreService.saveUser(user);
+          debugPrint('✅ [AuthProvider] Utilisateur migré dans Firestore: ${user.email}');
         }
+        
+        _currentUser = user;
         debugPrint(
           '🔄 [AuthProvider] Utilisateur connecté: ${_currentUser!.email} (isAdmin: ${_currentUser!.isAdmin})',
         );

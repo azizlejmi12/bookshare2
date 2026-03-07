@@ -41,7 +41,7 @@ class AuthService {
       await userCredential.user!.reload();
       final firebaseUser = _auth.currentUser ?? userCredential.user!;
 
-      // Créer le modèle utilisateur
+      // Créer puis sauvegarder l'utilisateur dans Firestore.
       final userModel = UserModel(
         uid: firebaseUser.uid,
         name: name,
@@ -50,8 +50,7 @@ class AuthService {
         isAdmin: false,
       );
 
-      // TODO: Sauvegarder dans Firestore si nécessaire
-      // await _saveUserToFirestore(userModel);
+      await _firestoreService.saveUser(userModel);
 
       return userModel;
     } on FirebaseAuthException catch (e) {
