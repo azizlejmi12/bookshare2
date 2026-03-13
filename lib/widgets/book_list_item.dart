@@ -6,6 +6,7 @@ class BookListItem extends StatelessWidget {
   final String author;
   final bool isAvailable;
   final List<Color> gradientColors;
+  final VoidCallback? onBorrow;
 
   const BookListItem({
     super.key,
@@ -13,6 +14,7 @@ class BookListItem extends StatelessWidget {
     required this.author,
     required this.isAvailable,
     required this.gradientColors,
+    this.onBorrow,
   });
 
   @override
@@ -46,9 +48,9 @@ class BookListItem extends StatelessWidget {
               borderRadius: BorderRadius.circular(8),
             ),
           ),
-          
+
           const SizedBox(width: 16),
-          
+
           // Infos
           Expanded(
             child: Column(
@@ -72,9 +74,14 @@ class BookListItem extends StatelessWidget {
                 ),
                 const SizedBox(height: 12),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
-                    color: isAvailable ? const Color(0xFF27AE60) : const Color(0xFFE67E22),
+                    color: isAvailable
+                        ? const Color(0xFF27AE60)
+                        : const Color(0xFFE67E22),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
@@ -86,6 +93,26 @@ class BookListItem extends StatelessWidget {
                     ),
                   ),
                 ),
+                const SizedBox(height: 10),
+                if (onBorrow != null)
+                  SizedBox(
+                    height: 34,
+                    child: ElevatedButton(
+                      onPressed: isAvailable ? onBorrow : null,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF2C3E50),
+                        disabledBackgroundColor: Colors.grey.shade400,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                      ),
+                      child: const Text(
+                        'Emprunter',
+                        style: TextStyle(fontSize: 12, color: Colors.white),
+                      ),
+                    ),
+                  ),
               ],
             ),
           ),

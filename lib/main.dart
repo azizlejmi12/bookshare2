@@ -3,22 +3,22 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
 import 'firebase_options.dart';
 import 'providers/auth_provider.dart';
-import 'providers/book_provider.dart';
-import 'providers/users_provider.dart'; // ← NOUVEAU
+import 'providers/catalogue_provider.dart';
+import 'providers/loans_provider.dart';
+import 'providers/users_provider.dart';
 import 'views/auth/login_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
-  
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
   runApp(
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()),
-        ChangeNotifierProvider(create: (_) => BookProvider()),
-        ChangeNotifierProvider(create: (_) => UsersProvider()), // ← NOUVEAU
+        ChangeNotifierProvider(create: (_) => CatalogueProvider()),
+        ChangeNotifierProvider(create: (_) => LoansProvider()),
+        ChangeNotifierProvider(create: (_) => UsersProvider()),
       ],
       child: const BookShareApp(),
     ),

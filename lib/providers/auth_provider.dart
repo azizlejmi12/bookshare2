@@ -1,5 +1,8 @@
 import 'package:flutter/foundation.dart';
+import 'dart:async';
+
 import 'package:firebase_auth/firebase_auth.dart';
+
 import '../models/user_model.dart';
 import '../services/auth_service.dart';
 import '../services/firestore_service.dart';
@@ -8,6 +11,8 @@ import '../services/firestore_service.dart';
 class AuthProvider with ChangeNotifier {
   final AuthService _authService = AuthService();
   final FirestoreService _firestoreService = FirestoreService();
+
+  StreamSubscription<User?>? _authStateSubscription;
 
   UserModel? _currentUser;
   bool _isLoading = false;
@@ -21,34 +26,31 @@ class AuthProvider with ChangeNotifier {
 
   AuthProvider() {
     // Écouter les changements d'état d'authentification
-    _authService.authStateChanges.listen((User? firebaseUser) async {
-      if (firebaseUser != null) {
-        // Récupérer depuis Firestore pour obtenir isAdmin
-        UserModel? user = await _firestoreService.getUser(firebaseUser.uid);
-        
-        // 🔥 Si pas dans Firestore, créer automatiquement
-        if (user == null) {
-          user = UserModel(
-            uid: firebaseUser.uid,
-            name: firebaseUser.displayName ?? 'Utilisateur',
-            email: firebaseUser.email ?? '',
-            createdAt: DateTime.now(),
-            isAdmin: false,
-          );
-          await _firestoreService.saveUser(user);
-          debugPrint('✅ [AuthProvider] Utilisateur migré dans Firestore: ${user.email}');
+    _authStateSubscription = _authService.authStateChanges.listen(
+      (User? firebaseUser) async {
+        if (firebaseUser != null) {
+          UserModel? user = await _firestoreService.getUser(firebaseUser.uid);
+          if (user == null) {
+            user = UserModel(
+              uid: firebaseUser.uid,
+              name: firebaseUser.displayName ?? 'Utilisateur',
+              email: firebaseUser.email ?? '',
+              createdAt: DateTime.now(),
+              isAdmin: false,
+            );
+            await _firestoreService.saveUser(user);
+          }
+          _currentUser = user;
+        } else {
+          _currentUser = null;
         }
-        
-        _currentUser = user;
-        debugPrint(
-          '🔄 [AuthProvider] Utilisateur connecté: ${_currentUser!.email} (isAdmin: ${_currentUser!.isAdmin})',
-        );
-      } else {
-        _currentUser = null;
-        debugPrint('🔄 [AuthProvider] Utilisateur déconnecté');
-      }
-      notifyListeners();
-    });
+        notifyListeners();
+      },
+      onError: (Object e) {
+        _setError(e.toString());
+        notifyListeners();
+      },
+    );
   }
 
   /// Inscription
@@ -72,7 +74,6 @@ class AuthProvider with ChangeNotifier {
       _currentUser = user;
       debugPrint('✅ [AuthProvider] Inscription réussie');
 
-      // Retour à l'écran de connexion après inscription
       await _authService.signOut();
       _currentUser = null;
       notifyListeners();
@@ -159,5 +160,11 @@ class AuthProvider with ChangeNotifier {
   void clearError() {
     _clearError();
     notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    _authStateSubscription?.cancel();
+    super.dispose();
   }
 }

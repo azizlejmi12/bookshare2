@@ -87,17 +87,15 @@ class AuthService {
 
       // Récupérer l'utilisateur depuis Firestore pour avoir isAdmin
       UserModel? userModel = await _firestoreService.getUser(firebaseUser.uid);
-      
+
       // Si pas dans Firestore, créer un nouveau
-      if (userModel == null) {
-        userModel = UserModel(
-          uid: firebaseUser.uid,
-          name: firebaseUser.displayName ?? 'Utilisateur',
-          email: firebaseUser.email ?? '',
-          createdAt: DateTime.now(),
-          isAdmin: false,
-        );
-      }
+      userModel ??= UserModel(
+        uid: firebaseUser.uid,
+        name: firebaseUser.displayName ?? 'Utilisateur',
+        email: firebaseUser.email ?? '',
+        createdAt: DateTime.now(),
+        isAdmin: false,
+      );
 
       return userModel;
     } on FirebaseAuthException catch (e) {

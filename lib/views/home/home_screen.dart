@@ -2,6 +2,8 @@ import 'package:bookshare/views/profil/profile_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/loans_provider.dart';
+import '../../models/book_model.dart';
 import '../../widgets/bottom_nav.dart';
 import '../../widgets/book_card.dart';
 import '../../widgets/book_list_item.dart';
@@ -10,8 +12,10 @@ import '../../widgets/emprunt_card.dart';
 import '../../widgets/tab_selector.dart';
 import '../../widgets/profile_menu_item.dart';
 import '../../widgets/message_item.dart';
+import '../../models/loan_model.dart';
 import '../auth/login_screen.dart';
-import '../../providers/book_provider.dart';
+import '../../providers/catalogue_provider.dart';
+
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -62,13 +66,13 @@ class _HomeContentState extends State<HomeContent> {
     super.initState();
     // Charge les livres au démarrage
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<BookProvider>().loadBooks();
+      context.read<CatalogueProvider>().loadBooks();
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<BookProvider>(
+    return Consumer<CatalogueProvider>(
       builder: (context, bookProvider, child) {
         return SafeArea(
           child: SingleChildScrollView(
@@ -78,7 +82,10 @@ class _HomeContentState extends State<HomeContent> {
                 // Header bleu
                 Container(
                   color: const Color(0xFF2C3E50),
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 16,
+                  ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -139,22 +146,24 @@ class _HomeContentState extends State<HomeContent> {
                 SizedBox(
                   height: 320,
                   child: bookProvider.isLoading
-                    ? const Center(child: CircularProgressIndicator())
-                    : ListView(
-                        scrollDirection: Axis.horizontal,
-                        padding: const EdgeInsets.symmetric(horizontal: 20),
-                        children: bookProvider.recommendedBooks.map((book) {
-                          return Padding(
-                            padding: const EdgeInsets.only(right: 16),
-                            child: BookCard(
-                              title: book.title,
-                              author: book.author,
-                              isAvailable: book.isAvailable,
-                              gradientColors: _getGradientForGenre(book.genre),
-                            ),
-                          );
-                        }).toList(),
-                      ),
+                      ? const Center(child: CircularProgressIndicator())
+                      : ListView(
+                          scrollDirection: Axis.horizontal,
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          children: bookProvider.recommendedBooks.map((book) {
+                            return Padding(
+                              padding: const EdgeInsets.only(right: 16),
+                              child: BookCard(
+                                title: book.title,
+                                author: book.author,
+                                isAvailable: book.isAvailable,
+                                gradientColors: _getGradientForGenre(
+                                  book.genre,
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                        ),
                 ),
 
                 // Section NOUVEAUTÉS
@@ -174,17 +183,17 @@ class _HomeContentState extends State<HomeContent> {
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: bookProvider.isLoading
-                    ? const Center(child: CircularProgressIndicator())
-                    : Column(
-                        children: bookProvider.books.take(3).map((book) {
-                          return BookListItem(
-                            title: book.title,
-                            author: book.author,
-                            isAvailable: book.isAvailable,
-                            gradientColors: _getGradientForGenre(book.genre),
-                          );
-                        }).toList(),
-                      ),
+                      ? const Center(child: CircularProgressIndicator())
+                      : Column(
+                          children: bookProvider.books.take(3).map((book) {
+                            return BookListItem(
+                              title: book.title,
+                              author: book.author,
+                              isAvailable: book.isAvailable,
+                              gradientColors: _getGradientForGenre(book.genre),
+                            );
+                          }).toList(),
+                        ),
                 ),
 
                 const SizedBox(height: 20),
@@ -306,7 +315,37 @@ class _EmpruntsContentState extends State<EmpruntsContent> {
   int selectedTab = 0; // 0 = En cours, 1 = Historique
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final auth = context.read<AuthProvider>();
+      if (auth.currentUser != null) {
+        context.read<LoansProvider>().watchUserLoans(auth.currentUser!.uid);
+      }
+      context.read<CatalogueProvider>().loadBooks();
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final auth = context.watch<AuthProvider>();
+    final loansProvider = context.watch<LoansProvider>();
+    final catalogueProvider = context.watch<CatalogueProvider>();
+
+    if (auth.currentUser == null) {
+      return const SafeArea(
+        child: Center(
+          child: Text(
+            'Connectez-vous pour voir vos emprunts.',
+            style: TextStyle(color: Color(0xFF7F8C8D), fontSize: 16),
+          ),
+        ),
+      );
+    }
+
+    final activeLoans = loansProvider.activeLoans;
+    final historyLoans = loansProvider.historyLoans;
+
     return SafeArea(
       child: Column(
         children: [
@@ -332,7 +371,10 @@ class _EmpruntsContentState extends State<EmpruntsContent> {
 
           // ===== ONGLETS =====
           TabSelector(
-            tabs: const ['En cours (2)', 'Historique'],
+            tabs: [
+              'En cours (${activeLoans.length})',
+              'Historique (${historyLoans.length})',
+            ],
             selectedIndex: selectedTab,
             onTap: (index) {
               setState(() {
@@ -343,38 +385,160 @@ class _EmpruntsContentState extends State<EmpruntsContent> {
 
           // ===== CONTENU =====
           Expanded(
-            child: selectedTab == 0
-                // Onglet "En cours"
-                ? ListView(
-                    padding: const EdgeInsets.all(20),
-                    children: const [
-                      EmpruntCard(
-                        title: 'Le Petit Prince',
-                        author: 'Saint-Exupéry',
-                        returnDate: '18/02/2024',
-                        isUrgent: true, // Rouge !
-                        gradientColors: [Color(0xFF667eea), Color(0xFF764ba2)],
-                      ),
-                      EmpruntCard(
-                        title: '1984',
-                        author: 'George Orwell',
-                        returnDate: '25/02/2024',
-                        isUrgent: false, // Vert
-                        gradientColors: [Color(0xFFfa709a), Color(0xFFfee140)],
-                      ),
-                    ],
+            child: loansProvider.isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : selectedTab == 0
+                ? _buildActiveLoans(
+                    context,
+                    activeLoans,
+                    catalogueProvider,
+                    loansProvider,
                   )
-                // Onglet "Historique" (vide pour l'instant)
-                : const Center(
-                    child: Text(
-                      'Aucun historique',
-                      style: TextStyle(color: Color(0xFF7F8C8D), fontSize: 16),
-                    ),
-                  ),
+                : _buildHistoryLoans(context, historyLoans, catalogueProvider),
           ),
         ],
       ),
     );
+  }
+
+  Widget _buildActiveLoans(
+    BuildContext context,
+    List<LoanModel> activeLoans,
+    CatalogueProvider catalogueProvider,
+    LoansProvider loansProvider,
+  ) {
+    if (activeLoans.isEmpty) {
+      return const Center(
+        child: Text(
+          'Aucun emprunt en cours',
+          style: TextStyle(color: Color(0xFF7F8C8D), fontSize: 16),
+        ),
+      );
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.all(20),
+      itemCount: activeLoans.length,
+      itemBuilder: (context, index) {
+        final loan = activeLoans[index];
+        final book = _findBook(catalogueProvider, loan.bookId);
+        final dueDate = loan.dueDate;
+        final isUrgent = dueDate.difference(DateTime.now()).inDays <= 3;
+
+        return EmpruntCard(
+          title: book?.title ?? _bookFallbackLabel(loan.bookId),
+          author: book?.author ?? 'Auteur inconnu',
+          returnDate:
+              '${dueDate.day.toString().padLeft(2, '0')}/${dueDate.month.toString().padLeft(2, '0')}/${dueDate.year}',
+          isUrgent: isUrgent,
+          gradientColors: _getGradientForGenre(book?.genre ?? ''),
+          secondaryActionLabel: loan.renewalCount > 0
+              ? 'Deja prolonge'
+              : 'Prolonger (+7j)',
+          onPrimaryAction: () async {
+            final success = await loansProvider.returnBook(
+              loan.id,
+              loan.bookId,
+            );
+            if (!context.mounted) return;
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  success
+                      ? 'Livre retourne.'
+                      : (loansProvider.error ?? 'Retour impossible.'),
+                ),
+                backgroundColor: success ? const Color(0xFF27AE60) : Colors.red,
+              ),
+            );
+          },
+          onSecondaryAction: loan.renewalCount > 0
+              ? null
+              : () async {
+                  final success = await loansProvider.renewLoan(
+                    loan.id,
+                    extraDays: 7,
+                  );
+                  if (!context.mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        success
+                            ? 'Emprunt prolonge de 7 jours.'
+                            : (loansProvider.error ??
+                                  'Prolongation impossible.'),
+                      ),
+                      backgroundColor: success
+                          ? const Color(0xFF27AE60)
+                          : Colors.red,
+                    ),
+                  );
+                },
+        );
+      },
+    );
+  }
+
+  Widget _buildHistoryLoans(
+    BuildContext context,
+    List<LoanModel> historyLoans,
+    CatalogueProvider catalogueProvider,
+  ) {
+    if (historyLoans.isEmpty) {
+      return const Center(
+        child: Text(
+          'Aucun historique',
+          style: TextStyle(color: Color(0xFF7F8C8D), fontSize: 16),
+        ),
+      );
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.all(20),
+      itemCount: historyLoans.length,
+      itemBuilder: (context, index) {
+        final loan = historyLoans[index];
+        final book = _findBook(catalogueProvider, loan.bookId);
+        final date = loan.returnDate ?? loan.dueDate;
+
+        return EmpruntCard(
+          title: book?.title ?? _bookFallbackLabel(loan.bookId),
+          author: book?.author ?? 'Auteur inconnu',
+          returnDate:
+              '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}',
+          isUrgent: false,
+          gradientColors: _getGradientForGenre(book?.genre ?? ''),
+          primaryActionLabel: 'Detail',
+          secondaryActionLabel: 'Termine',
+          onPrimaryAction: () {},
+          onSecondaryAction: null,
+        );
+      },
+    );
+  }
+
+  List<Color> _getGradientForGenre(String genre) {
+    switch (genre) {
+      case 'Roman':
+        return [const Color(0xFF667eea), const Color(0xFF764ba2)];
+      case 'Science-fiction':
+        return [const Color(0xFFfa709a), const Color(0xFFfee140)];
+      default:
+        return [const Color(0xFFa8edea), const Color(0xFFfed6e3)];
+    }
+  }
+
+  BookModel? _findBook(CatalogueProvider catalogueProvider, String bookId) {
+    for (final book in catalogueProvider.books) {
+      if (book.id == bookId) return book;
+    }
+    return null;
+  }
+
+  String _bookFallbackLabel(String bookId) {
+    if (bookId.isEmpty) return 'Livre inconnu';
+    final size = bookId.length > 6 ? 6 : bookId.length;
+    return 'Livre #${bookId.substring(0, size)}';
   }
 }
 

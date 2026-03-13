@@ -5,8 +5,12 @@ class EmpruntCard extends StatelessWidget {
   final String title;
   final String author;
   final String returnDate;
-  final bool isUrgent;  // True = moins de 3 jours
+  final bool isUrgent; // True = moins de 3 jours
   final List<Color> gradientColors;
+  final String primaryActionLabel;
+  final String secondaryActionLabel;
+  final VoidCallback? onPrimaryAction;
+  final VoidCallback? onSecondaryAction;
 
   const EmpruntCard({
     super.key,
@@ -15,6 +19,10 @@ class EmpruntCard extends StatelessWidget {
     required this.returnDate,
     required this.isUrgent,
     required this.gradientColors,
+    this.primaryActionLabel = 'Voir le livre',
+    this.secondaryActionLabel = 'Prolonger',
+    this.onPrimaryAction,
+    this.onSecondaryAction,
   });
 
   @override
@@ -44,9 +52,9 @@ class EmpruntCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(8),
                 ),
               ),
-              
+
               const SizedBox(width: 16),
-              
+
               // Infos
               Expanded(
                 child: Column(
@@ -84,8 +92,8 @@ class EmpruntCard extends StatelessWidget {
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
                             // Rouge si urgent, vert sinon
-                            color: isUrgent 
-                                ? const Color(0xFFE74C3C) 
+                            color: isUrgent
+                                ? const Color(0xFFE74C3C)
                                 : const Color(0xFF27AE60),
                           ),
                         ),
@@ -96,23 +104,23 @@ class EmpruntCard extends StatelessWidget {
               ),
             ],
           ),
-          
+
           const SizedBox(height: 16),
-          
+
           // Boutons d'action
           Row(
             children: [
               Expanded(
                 child: OutlinedButton(
-                  onPressed: () {},
+                  onPressed: onPrimaryAction,
                   style: OutlinedButton.styleFrom(
                     side: const BorderSide(color: Color(0xFF2C3E50)),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),
                   ),
-                  child: const Text(
-                    '📖 Voir le livre',
+                  child: Text(
+                    primaryActionLabel,
                     style: TextStyle(color: Color(0xFF2C3E50)),
                   ),
                 ),
@@ -120,14 +128,15 @@ class EmpruntCard extends StatelessWidget {
               const SizedBox(width: 12),
               Expanded(
                 child: ElevatedButton(
-                  onPressed: () {},
+                  onPressed: onSecondaryAction,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF2C3E50),
+                    disabledBackgroundColor: Colors.grey.shade400,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),
                   ),
-                  child: const Text('⏰ Prolonger'),
+                  child: Text(secondaryActionLabel),
                 ),
               ),
             ],
