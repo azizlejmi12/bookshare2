@@ -18,6 +18,20 @@ class BookService {
     return _firestore.addBook(title: title, author: author, genre: genre);
   }
 
+  Future<void> updateBook({
+    required String bookId,
+    required String title,
+    required String author,
+    required String genre,
+  }) {
+    return _firestore.updateBook(
+      bookId: bookId,
+      title: title,
+      author: author,
+      genre: genre,
+    );
+  }
+
   Future<void> toggleBookAvailability(String bookId, bool isAvailable) {
     return _firestore.toggleBookAvailability(bookId, isAvailable);
   }

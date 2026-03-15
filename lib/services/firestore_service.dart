@@ -137,6 +137,20 @@ class FirestoreService {
     });
   }
 
+  // Modifier un livre
+  Future<void> updateBook({
+    required String bookId,
+    required String title,
+    required String author,
+    required String genre,
+  }) async {
+    await _db.collection('books').doc(bookId).update({
+      'title': title,
+      'author': author,
+      'genre': genre,
+    });
+  }
+
   // Supprimer un livre
   Future<void> deleteBook(String bookId) async {
     await _db.collection('books').doc(bookId).delete();
@@ -166,29 +180,50 @@ class FirestoreService {
     required String bookId,
     int durationDays = 7, // Durée par défaut : 7 jours
   }) async {
-    final batch = _db.batch();
+    final alreadyBorrowedByUser = await _db
+        .collection('loans')
+        .where('userId', isEqualTo: userId)
+        .where('bookId', isEqualTo: bookId)
+        .where('status', whereIn: ['active', 'extended'])
+        .limit(1)
+        .get();
 
-    // 1. Créer l'emprunt avec dueDate
-    final loanRef = _db.collection('loans').doc();
-    final borrowDate = DateTime.now();
-    final dueDate = borrowDate.add(Duration(days: durationDays));
+    if (alreadyBorrowedByUser.docs.isNotEmpty) {
+      throw Exception('Vous avez deja emprunte ce livre.');
+    }
 
-    batch.set(loanRef, {
-      'userId': userId,
-      'bookId': bookId,
-      'borrowDate': Timestamp.fromDate(borrowDate),
-      'dueDate': Timestamp.fromDate(dueDate),
-      'returnDate': null,
-      'status': 'active',
-      'renewalCount': 0,
-      'createdAt': FieldValue.serverTimestamp(),
-    });
-
-    // 2. Marquer le livre comme indisponible
     final bookRef = _db.collection('books').doc(bookId);
-    batch.update(bookRef, {'isAvailable': false});
 
-    await batch.commit();
+    await _db.runTransaction((transaction) async {
+      final bookDoc = await transaction.get(bookRef);
+      if (!bookDoc.exists) {
+        throw Exception('Livre introuvable.');
+      }
+
+      final data = bookDoc.data();
+      final isAvailable = (data?['isAvailable'] as bool?) ?? true;
+      if (!isAvailable) {
+        throw Exception('Ce livre n\'est pas disponible actuellement.');
+      }
+
+      // Vérifie l'état courant puis écrit emprunt + indisponibilité atomiquement.
+      final loanRef = _db.collection('loans').doc();
+      final borrowDate = DateTime.now();
+      final dueDate = borrowDate.add(Duration(days: durationDays));
+
+      transaction.set(loanRef, {
+        'userId': userId,
+        'bookId': bookId,
+        'borrowDate': Timestamp.fromDate(borrowDate),
+        'dueDate': Timestamp.fromDate(dueDate),
+        'returnDate': null,
+        'status': 'active',
+        'renewalCount': 0,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+
+      transaction.update(bookRef, {'isAvailable': false});
+    });
   }
 
   // Retourner un livre
@@ -251,11 +286,26 @@ class FirestoreService {
     return _db
         .collection('loans')
         .where('userId', isEqualTo: userId)
-        .where('status', whereIn: ['active', 'extended'])
-        .orderBy('dueDate')
         .snapshots()
         .map((snapshot) {
-          return snapshot.docs.map((doc) {
+          final active = snapshot.docs.where((doc) {
+            final status = doc.data()['status'];
+            return status == 'active' || status == 'extended';
+          }).toList();
+
+          active.sort((a, b) {
+            final aData = a.data();
+            final bData = b.data();
+            final aDue = (aData['dueDate'] as Timestamp?)?.toDate();
+            final bDue = (bData['dueDate'] as Timestamp?)?.toDate();
+
+            if (aDue == null && bDue == null) return 0;
+            if (aDue == null) return 1;
+            if (bDue == null) return -1;
+            return aDue.compareTo(bDue);
+          });
+
+          return active.map((doc) {
             return {'id': doc.id, ...doc.data()};
           }).toList();
         });
@@ -266,11 +316,31 @@ class FirestoreService {
     return _db
         .collection('loans')
         .where('userId', isEqualTo: userId)
-        .where('status', whereIn: ['returned', 'overdue'])
-        .orderBy('returnDate', descending: true)
         .snapshots()
         .map((snapshot) {
-          return snapshot.docs.map((doc) {
+          final history = snapshot.docs.where((doc) {
+            final status = doc.data()['status'];
+            return status == 'returned' || status == 'overdue';
+          }).toList();
+
+          history.sort((a, b) {
+            final aData = a.data();
+            final bData = b.data();
+            final aReturn = (aData['returnDate'] as Timestamp?)?.toDate();
+            final bReturn = (bData['returnDate'] as Timestamp?)?.toDate();
+            final aDue = (aData['dueDate'] as Timestamp?)?.toDate();
+            final bDue = (bData['dueDate'] as Timestamp?)?.toDate();
+
+            final aDate = aReturn ?? aDue;
+            final bDate = bReturn ?? bDue;
+
+            if (aDate == null && bDate == null) return 0;
+            if (aDate == null) return 1;
+            if (bDate == null) return -1;
+            return bDate.compareTo(aDate);
+          });
+
+          return history.map((doc) {
             return {'id': doc.id, ...doc.data()};
           }).toList();
         });

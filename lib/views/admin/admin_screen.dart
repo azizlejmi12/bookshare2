@@ -349,6 +349,110 @@ class _BooksTabState extends State<BooksTab> {
     super.dispose();
   }
 
+  void _showEditBookDialog(BuildContext context, book) {
+    final titleCtrl = TextEditingController(text: book.title);
+    final authorCtrl = TextEditingController(text: book.author);
+    final genreCtrl = TextEditingController(text: book.genre);
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Modifier le livre'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: titleCtrl,
+              decoration: const InputDecoration(labelText: 'Titre'),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: authorCtrl,
+              decoration: const InputDecoration(labelText: 'Auteur'),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: genreCtrl,
+              decoration: const InputDecoration(labelText: 'Genre'),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Annuler'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              if (titleCtrl.text.trim().isEmpty ||
+                  authorCtrl.text.trim().isEmpty ||
+                  genreCtrl.text.trim().isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Veuillez remplir tous les champs'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+                return;
+              }
+              await context.read<CatalogueProvider>().updateBook(
+                bookId: book.id,
+                title: titleCtrl.text.trim(),
+                author: authorCtrl.text.trim(),
+                genre: genreCtrl.text.trim(),
+              );
+              if (context.mounted) {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Livre modifie avec succes'),
+                    backgroundColor: Colors.green,
+                  ),
+                );
+              }
+            },
+            child: const Text('Enregistrer'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showDeleteBookDialog(BuildContext context, book) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Confirmer la suppression'),
+        content: Text('Supprimer "${book.title}" ?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Annuler'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () async {
+              await context.read<CatalogueProvider>().deleteBook(book.id);
+              if (context.mounted) {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('"${book.title}" supprime'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+            },
+            child: const Text(
+              'Supprimer',
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _showAddBookDialog(BuildContext context) {
     _titleController.clear();
     _authorController.clear();
@@ -435,28 +539,145 @@ class _BooksTabState extends State<BooksTab> {
               itemCount: bookProvider.books.length,
               itemBuilder: (context, index) {
                 final book = bookProvider.books[index];
-                return ListTile(
-                  leading: Container(
-                    width: 50,
-                    height: 70,
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: book.isAvailable
-                            ? [Colors.blue, Colors.purple]
-                            : [Colors.grey, Colors.grey],
-                      ),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
+                return Card(
+                  margin: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 6,
                   ),
-                  title: Text(book.title),
-                  subtitle: Text('${book.author} • ${book.genre}'),
-                  trailing: Switch(
-                    value: book.isAvailable,
-                    onChanged: (value) async {
-                      await context
-                          .read<CatalogueProvider>()
-                          .toggleBookAvailability(book.id, value);
-                    },
+                  child: ListTile(
+                    leading: Container(
+                      width: 44,
+                      height: 60,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: book.isAvailable
+                              ? [const Color(0xFF667eea), const Color(0xFF764ba2)]
+                              : [Colors.grey.shade400, Colors.grey.shade600],
+                        ),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(
+                        Icons.menu_book,
+                        color: Colors.white,
+                        size: 24,
+                      ),
+                    ),
+                    title: Text(
+                      book.title,
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    subtitle: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(book.author),
+                        const SizedBox(height: 2),
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF2C3E50).withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                book.genre,
+                                style: const TextStyle(fontSize: 11),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: book.isAvailable
+                                    ? const Color(0xFF27AE60).withValues(alpha: 0.15)
+                                    : Colors.orange.withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                book.isAvailable ? 'Disponible' : 'Prêté',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: book.isAvailable
+                                      ? const Color(0xFF27AE60)
+                                      : Colors.orange,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                    isThreeLine: true,
+                    trailing: PopupMenuButton<String>(
+                      onSelected: (value) async {
+                        if (value == 'edit') {
+                          _showEditBookDialog(context, book);
+                        } else if (value == 'toggle') {
+                          await context
+                              .read<CatalogueProvider>()
+                              .toggleBookAvailability(
+                                book.id,
+                                !book.isAvailable,
+                              );
+                        } else if (value == 'delete') {
+                          _showDeleteBookDialog(context, book);
+                        }
+                      },
+                      itemBuilder: (_) => [
+                        const PopupMenuItem(
+                          value: 'edit',
+                          child: Row(
+                            children: [
+                              Icon(Icons.edit, size: 18, color: Color(0xFF2C3E50)),
+                              SizedBox(width: 8),
+                              Text('Modifier'),
+                            ],
+                          ),
+                        ),
+                        PopupMenuItem(
+                          value: 'toggle',
+                          child: Row(
+                            children: [
+                              Icon(
+                                book.isAvailable
+                                    ? Icons.lock_outline
+                                    : Icons.lock_open,
+                                size: 18,
+                                color: book.isAvailable
+                                    ? Colors.orange
+                                    : const Color(0xFF27AE60),
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                book.isAvailable
+                                    ? 'Marquer prêté'
+                                    : 'Marquer disponible',
+                              ),
+                            ],
+                          ),
+                        ),
+                        const PopupMenuItem(
+                          value: 'delete',
+                          child: Row(
+                            children: [
+                              Icon(Icons.delete, size: 18, color: Colors.red),
+                              SizedBox(width: 8),
+                              Text(
+                                'Supprimer',
+                                style: TextStyle(color: Colors.red),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 );
               },

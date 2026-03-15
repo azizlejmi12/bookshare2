@@ -13,6 +13,7 @@ import '../../widgets/tab_selector.dart';
 import '../../widgets/profile_menu_item.dart';
 import '../../widgets/message_item.dart';
 import '../../models/loan_model.dart';
+import '../catalogue/catalogue_screen.dart';
 import '../auth/login_screen.dart';
 import '../../providers/catalogue_provider.dart';
 
@@ -29,7 +30,7 @@ class _HomeScreenState extends State<HomeScreen> {
   // Liste des 5 écrans
   final List<Widget> pages = [
     const HomeContent(), // Page 0
-    const CatalogueContent(), // Page 1
+    const CatalogueScreen(), // Page 1
     const EmpruntsContent(), // Page 2
     const MessagesContent(), // Page 3
     const ProfileScreen(), // Page 4
@@ -387,6 +388,20 @@ class _EmpruntsContentState extends State<EmpruntsContent> {
           Expanded(
             child: loansProvider.isLoading
                 ? const Center(child: CircularProgressIndicator())
+                : loansProvider.error != null
+                ? Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Text(
+                        loansProvider.error!,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          color: Colors.red,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ),
+                  )
                 : selectedTab == 0
                 ? _buildActiveLoans(
                     context,

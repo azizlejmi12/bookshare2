@@ -71,6 +71,20 @@ class CatalogueProvider extends ChangeNotifier {
     return _bookService.addBook(title: title, author: author, genre: genre);
   }
 
+  Future<void> updateBook({
+    required String bookId,
+    required String title,
+    required String author,
+    required String genre,
+  }) {
+    return _bookService.updateBook(
+      bookId: bookId,
+      title: title,
+      author: author,
+      genre: genre,
+    );
+  }
+
   Future<void> toggleBookAvailability(String bookId, bool isAvailable) {
     return _bookService.toggleBookAvailability(bookId, isAvailable);
   }

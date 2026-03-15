@@ -20,6 +20,14 @@ class LoansProvider extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get error => _error;
 
+  String _formatError(Object error) {
+    final message = error.toString();
+    const prefix = 'Exception: ';
+    return message.startsWith(prefix)
+        ? message.substring(prefix.length)
+        : message;
+  }
+
   void clearError() {
     _error = null;
     notifyListeners();
@@ -41,16 +49,22 @@ class LoansProvider extends ChangeNotifier {
             notifyListeners();
           },
           onError: (e) {
-            _error = e.toString();
+            _error = _formatError(e);
             _isLoading = false;
             notifyListeners();
           },
         );
 
-    _historySub = _loanService.getUserLoanHistory(userId).listen((loans) {
-      _historyLoans = loans;
-      notifyListeners();
-    });
+    _historySub = _loanService.getUserLoanHistory(userId).listen(
+      (loans) {
+        _historyLoans = loans;
+        notifyListeners();
+      },
+      onError: (e) {
+        _error = _formatError(e);
+        notifyListeners();
+      },
+    );
   }
 
   Future<bool> borrowBook({
@@ -68,7 +82,7 @@ class LoansProvider extends ChangeNotifier {
       notifyListeners();
       return true;
     } catch (e) {
-      _error = e.toString();
+      _error = _formatError(e);
       notifyListeners();
       return false;
     }
@@ -81,7 +95,7 @@ class LoansProvider extends ChangeNotifier {
       notifyListeners();
       return true;
     } catch (e) {
-      _error = e.toString();
+      _error = _formatError(e);
       notifyListeners();
       return false;
     }
@@ -94,7 +108,7 @@ class LoansProvider extends ChangeNotifier {
       notifyListeners();
       return true;
     } catch (e) {
-      _error = e.toString();
+      _error = _formatError(e);
       notifyListeners();
       return false;
     }
