@@ -5,6 +5,7 @@ import 'firebase_options.dart';
 import 'providers/auth_provider.dart';
 import 'providers/catalogue_provider.dart';
 import 'providers/loans_provider.dart';
+import 'providers/messages_provider.dart';
 import 'providers/users_provider.dart';
 import 'views/auth/login_screen.dart';
 
@@ -18,6 +19,7 @@ void main() async {
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => CatalogueProvider()),
         ChangeNotifierProvider(create: (_) => LoansProvider()),
+        ChangeNotifierProvider(create: (_) => MessagesProvider()),
         ChangeNotifierProvider(create: (_) => UsersProvider()),
       ],
       child: const BookShareApp(),

@@ -8,6 +8,7 @@ class MessageItem extends StatelessWidget {
   final int unreadCount;       // 0 = lu, >0 = non lu
   final bool isAdmin;          // True = icône bibliothèque
   final VoidCallback onTap;
+  final VoidCallback? onDelete;
 
   const MessageItem({
     super.key,
@@ -17,6 +18,7 @@ class MessageItem extends StatelessWidget {
     this.unreadCount = 0,
     this.isAdmin = false,
     required this.onTap,
+    this.onDelete,
   });
 
   @override
@@ -79,6 +81,17 @@ class MessageItem extends StatelessWidget {
                               : FontWeight.normal,
                         ),
                       ),
+                      if (onDelete != null)
+                        IconButton(
+                          onPressed: onDelete,
+                          icon: const Icon(
+                            Icons.delete_outline,
+                            color: Color(0xFFE74C3C),
+                            size: 20,
+                          ),
+                          tooltip: 'Supprimer la conversation',
+                          visualDensity: VisualDensity.compact,
+                        ),
                     ],
                   ),
                   

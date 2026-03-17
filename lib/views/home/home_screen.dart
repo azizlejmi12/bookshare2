@@ -13,9 +13,13 @@ import '../../widgets/tab_selector.dart';
 import '../../widgets/profile_menu_item.dart';
 import '../../widgets/message_item.dart';
 import '../../models/loan_model.dart';
+import '../../models/conversation_model.dart';
 import '../catalogue/catalogue_screen.dart';
 import '../auth/login_screen.dart';
 import '../../providers/catalogue_provider.dart';
+import '../../providers/messages_provider.dart';
+import '../../providers/users_provider.dart';
+import '../chat/chat_detail_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -27,19 +31,28 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int currentPage = 0; // Page actuelle (0 = Home)
 
-  // Liste des 5 écrans
-  final List<Widget> pages = [
-    const HomeContent(), // Page 0
-    const CatalogueScreen(), // Page 1
-    const EmpruntsContent(), // Page 2
-    const MessagesContent(), // Page 3
-    const ProfileScreen(), // Page 4
-  ];
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: pages[currentPage], // Affiche la page actuelle
+      body: [
+        const HomeContent(), // Page 0
+        const CatalogueScreen(), // Page 1
+        EmpruntsContent(
+          onBackToHome: () {
+            setState(() {
+              currentPage = 0;
+            });
+          },
+        ), // Page 2
+        const MessagesContent(), // Page 3
+        ProfileScreen(
+          onOpenLoansTab: () {
+            setState(() {
+              currentPage = 2;
+            });
+          },
+        ), // Page 4
+      ][currentPage], // Affiche la page actuelle
       bottomNavigationBar: BottomNav(
         currentIndex: currentPage,
         onTap: (index) {
@@ -62,6 +75,8 @@ class HomeContent extends StatefulWidget {
 }
 
 class _HomeContentState extends State<HomeContent> {
+  String _searchQuery = '';
+
   @override
   void initState() {
     super.initState();
@@ -75,6 +90,12 @@ class _HomeContentState extends State<HomeContent> {
   Widget build(BuildContext context) {
     return Consumer<CatalogueProvider>(
       builder: (context, bookProvider, child) {
+        final filteredRecommended = _filterBooks(
+          bookProvider.recommendedBooks,
+          _searchQuery,
+        );
+        final filteredBooks = _filterBooks(bookProvider.books, _searchQuery);
+
         return SafeArea(
           child: SingleChildScrollView(
             child: Column(
@@ -113,19 +134,25 @@ class _HomeContentState extends State<HomeContent> {
                       color: const Color(0xFFF5F5F0),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Row(
-                      children: [
-                        SizedBox(width: 16),
-                        Icon(Icons.search, color: Color(0xFF7F8C8D)),
-                        SizedBox(width: 12),
-                        Text(
-                          'Rechercher un livre, auteur...',
-                          style: TextStyle(
-                            color: Color(0xFF7F8C8D),
-                            fontSize: 16,
-                          ),
+                    child: TextField(
+                      onChanged: (value) {
+                        setState(() {
+                          _searchQuery = value.trim();
+                        });
+                      },
+                      decoration: const InputDecoration(
+                        border: InputBorder.none,
+                        prefixIcon: Icon(
+                          Icons.search,
+                          color: Color(0xFF7F8C8D),
                         ),
-                      ],
+                        hintText: 'Rechercher un livre, auteur, genre...',
+                        hintStyle: TextStyle(
+                          color: Color(0xFF7F8C8D),
+                          fontSize: 15,
+                        ),
+                        contentPadding: EdgeInsets.only(top: 10),
+                      ),
                     ),
                   ),
                 ),
@@ -148,10 +175,20 @@ class _HomeContentState extends State<HomeContent> {
                   height: 320,
                   child: bookProvider.isLoading
                       ? const Center(child: CircularProgressIndicator())
+                      : filteredRecommended.isEmpty
+                      ? const Center(
+                          child: Text(
+                            'Aucun livre recommande trouve.',
+                            style: TextStyle(
+                              color: Color(0xFF7F8C8D),
+                              fontSize: 15,
+                            ),
+                          ),
+                        )
                       : ListView(
                           scrollDirection: Axis.horizontal,
                           padding: const EdgeInsets.symmetric(horizontal: 20),
-                          children: bookProvider.recommendedBooks.map((book) {
+                          children: filteredRecommended.map((book) {
                             return Padding(
                               padding: const EdgeInsets.only(right: 16),
                               child: BookCard(
@@ -185,8 +222,19 @@ class _HomeContentState extends State<HomeContent> {
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: bookProvider.isLoading
                       ? const Center(child: CircularProgressIndicator())
+                      : filteredBooks.isEmpty
+                      ? const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 8),
+                          child: Text(
+                            'Aucun resultat pour votre recherche.',
+                            style: TextStyle(
+                              color: Color(0xFF7F8C8D),
+                              fontSize: 15,
+                            ),
+                          ),
+                        )
                       : Column(
-                          children: bookProvider.books.take(3).map((book) {
+                          children: filteredBooks.take(3).map((book) {
                             return BookListItem(
                               title: book.title,
                               author: book.author,
@@ -215,6 +263,16 @@ class _HomeContentState extends State<HomeContent> {
       default:
         return [const Color(0xFFa8edea), const Color(0xFFfed6e3)];
     }
+  }
+
+  List<BookModel> _filterBooks(List<BookModel> books, String query) {
+    if (query.isEmpty) return books;
+    final normalized = query.toLowerCase();
+    return books.where((book) {
+      return book.title.toLowerCase().contains(normalized) ||
+          book.author.toLowerCase().contains(normalized) ||
+          book.genre.toLowerCase().contains(normalized);
+    }).toList();
   }
 }
 
@@ -306,7 +364,9 @@ class CatalogueContent extends StatelessWidget {
 // CHANGEMENT : StatefulWidget au lieu de StatelessWidget
 // Pour gérer les onglets cliquables
 class EmpruntsContent extends StatefulWidget {
-  const EmpruntsContent({super.key});
+  final VoidCallback? onBackToHome;
+
+  const EmpruntsContent({super.key, this.onBackToHome});
 
   @override
   State<EmpruntsContent> createState() => _EmpruntsContentState();
@@ -356,7 +416,18 @@ class _EmpruntsContentState extends State<EmpruntsContent> {
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
             child: Row(
               children: [
-                const Icon(Icons.arrow_back, color: Color(0xFF2C3E50)),
+                IconButton(
+                  icon: const Icon(Icons.arrow_back, color: Color(0xFF2C3E50)),
+                  onPressed: () {
+                    if (widget.onBackToHome != null) {
+                      widget.onBackToHome!();
+                      return;
+                    }
+                    if (Navigator.of(context).canPop()) {
+                      Navigator.of(context).pop();
+                    }
+                  },
+                ),
                 const SizedBox(width: 16),
                 const Text(
                   'Mes Emprunts',
@@ -450,22 +521,8 @@ class _EmpruntsContentState extends State<EmpruntsContent> {
           secondaryActionLabel: loan.renewalCount > 0
               ? 'Deja prolonge'
               : 'Prolonger (+7j)',
-          onPrimaryAction: () async {
-            final success = await loansProvider.returnBook(
-              loan.id,
-              loan.bookId,
-            );
-            if (!context.mounted) return;
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(
-                  success
-                      ? 'Livre retourne.'
-                      : (loansProvider.error ?? 'Retour impossible.'),
-                ),
-                backgroundColor: success ? const Color(0xFF27AE60) : Colors.red,
-              ),
-            );
+          onPrimaryAction: () {
+            _showLoanDetailsDialog(loan, book, loansProvider);
           },
           onSecondaryAction: loan.renewalCount > 0
               ? null
@@ -492,6 +549,100 @@ class _EmpruntsContentState extends State<EmpruntsContent> {
         );
       },
     );
+  }
+
+  Future<void> _showLoanDetailsDialog(
+    LoanModel loan,
+    BookModel? book,
+    LoansProvider loansProvider,
+  ) async {
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: Text(book?.title ?? _bookFallbackLabel(loan.bookId)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Auteur: ${book?.author ?? 'Auteur inconnu'}'),
+              const SizedBox(height: 8),
+              Text('Genre: ${book?.genre.isNotEmpty == true ? book!.genre : 'Non renseigne'}'),
+              const SizedBox(height: 8),
+              Text('Date d\'emprunt: ${_formatDate(loan.borrowDate)}'),
+              const SizedBox(height: 8),
+              Text('Date de retour: ${_formatDate(loan.dueDate)}'),
+              const SizedBox(height: 8),
+              Text('Prolongations: ${loan.renewalCount}'),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop();
+              },
+              child: const Text('Fermer'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final confirmed = await showDialog<bool>(
+                  context: dialogContext,
+                  builder: (confirmContext) {
+                    return AlertDialog(
+                      title: const Text('Confirmer le retour'),
+                      content: const Text(
+                        'Voulez-vous vraiment retourner ce livre ?',
+                      ),
+                      actions: [
+                        TextButton(
+                          onPressed: () {
+                            Navigator.of(confirmContext).pop(false);
+                          },
+                          child: const Text('Non'),
+                        ),
+                        ElevatedButton(
+                          onPressed: () {
+                            Navigator.of(confirmContext).pop(true);
+                          },
+                          child: const Text('Oui'),
+                        ),
+                      ],
+                    );
+                  },
+                );
+
+                if (confirmed != true) return;
+                if (!mounted) return;
+
+                Navigator.of(context).pop();
+                final success = await loansProvider.returnBook(
+                  loan.id,
+                  loan.bookId,
+                );
+                if (!mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      success
+                          ? 'Livre retourne.'
+                          : (loansProvider.error ?? 'Retour impossible.'),
+                    ),
+                    backgroundColor: success
+                        ? const Color(0xFF27AE60)
+                        : Colors.red,
+                  ),
+                );
+              },
+              child: const Text('Retourner le livre'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  String _formatDate(DateTime date) {
+    return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
   }
 
   Widget _buildHistoryLoans(
@@ -557,31 +708,78 @@ class _EmpruntsContentState extends State<EmpruntsContent> {
   }
 }
 
-class MessagesContent extends StatelessWidget {
+class MessagesContent extends StatefulWidget {
   const MessagesContent({super.key});
 
   @override
+  State<MessagesContent> createState() => _MessagesContentState();
+}
+
+class _MessagesContentState extends State<MessagesContent> {
+  String _searchQuery = '';
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final user = context.read<AuthProvider>().currentUser;
+      if (user != null) {
+        context.read<MessagesProvider>().watchConversations(user.uid);
+      }
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final auth = context.watch<AuthProvider>();
+    final messagesProvider = context.watch<MessagesProvider>();
+    final currentUser = auth.currentUser;
+
+    if (currentUser == null) {
+      return const SafeArea(
+        child: Center(
+          child: Text(
+            'Connectez-vous pour voir vos messages.',
+            style: TextStyle(color: Color(0xFF7F8C8D), fontSize: 16),
+          ),
+        ),
+      );
+    }
+
+    final filteredConversations = _filterConversations(
+      messagesProvider.conversations,
+      currentUser.uid,
+      _searchQuery,
+    );
+
     return SafeArea(
       child: Column(
         children: [
-          // ===== HEADER =====
           Container(
             color: Colors.white,
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            child: const Center(
-              child: Text(
-                'Messages',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF2C3E50),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            child: Row(
+              children: [
+                const SizedBox(width: 8),
+                const Expanded(
+                  child: Text(
+                    'Messages',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF2C3E50),
+                    ),
+                  ),
                 ),
-              ),
+                IconButton(
+                  onPressed: () => _openCreateConversationDialog(currentUser.uid),
+                  icon: const Icon(Icons.add_comment_outlined),
+                  tooltip: 'Nouvelle conversation',
+                ),
+              ],
             ),
           ),
 
-          // ===== BARRE DE RECHERCHE =====
           Container(
             color: Colors.white,
             padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
@@ -591,55 +789,365 @@ class MessagesContent extends StatelessWidget {
                 color: const Color(0xFFF5F5F0),
                 borderRadius: BorderRadius.circular(20),
               ),
-              child: const Row(
-                children: [
-                  SizedBox(width: 16),
-                  Icon(Icons.search, color: Color(0xFF7F8C8D)),
-                  SizedBox(width: 12),
-                  Text(
-                    'Rechercher...',
-                    style: TextStyle(color: Color(0xFF7F8C8D), fontSize: 15),
-                  ),
-                ],
+              child: TextField(
+                onChanged: (value) {
+                  setState(() {
+                    _searchQuery = value.trim();
+                  });
+                },
+                decoration: const InputDecoration(
+                  border: InputBorder.none,
+                  prefixIcon: Icon(Icons.search, color: Color(0xFF7F8C8D)),
+                  hintText: 'Rechercher...',
+                  hintStyle: TextStyle(color: Color(0xFF7F8C8D), fontSize: 15),
+                ),
               ),
             ),
           ),
 
-          // ===== LISTE DES CONVERSATIONS =====
           Expanded(
-            child: ListView(
-              padding: const EdgeInsets.all(20),
-              children: [
-                MessageItem(
-                  name: 'Marie',
-                  message: 'Bonjour, le livre est disponible ?',
-                  time: '10:30',
-                  unreadCount: 2, // Non lu !
-                  onTap: () {},
-                ),
-                MessageItem(
-                  name: 'Bibliothèque',
-                  message: 'Votre livre doit être retourné avant le 18/02',
-                  time: 'Hier',
-                  isAdmin: true, // Orange
-                  onTap: () {},
-                ),
-                MessageItem(
-                  name: 'Paul',
-                  message: 'Merci pour votre aide !',
-                  time: 'Lun',
-                  onTap: () {}, // Lu (pas de badge)
-                ),
-                MessageItem(
-                  name: 'Sophie',
-                  message: 'À demain pour le club de lecture',
-                  time: 'Dim',
-                  onTap: () {},
-                ),
-              ],
-            ),
+            child: messagesProvider.isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : messagesProvider.error != null
+                ? Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Text(
+                        messagesProvider.error!,
+                        style: const TextStyle(color: Colors.red),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  )
+                : filteredConversations.isEmpty
+                ? const Center(
+                    child: Text(
+                      'Aucune conversation pour le moment.',
+                      style: TextStyle(color: Color(0xFF7F8C8D), fontSize: 15),
+                    ),
+                  )
+                : ListView.builder(
+                    padding: const EdgeInsets.all(20),
+                    itemCount: filteredConversations.length,
+                    itemBuilder: (context, index) {
+                      final conversation = filteredConversations[index];
+                      final displayName = conversation.displayNameFor(
+                        currentUser.uid,
+                      );
+                      final unreadCount = conversation.unreadFor(
+                        currentUser.uid,
+                      );
+                      final preview = conversation.lastMessage.isNotEmpty
+                          ? conversation.lastMessage
+                          : 'Commencez la conversation';
+
+                      return MessageItem(
+                        name: displayName,
+                        message: preview,
+                        time: _formatConversationTime(conversation.updatedAt),
+                        unreadCount: unreadCount,
+                        isAdmin: displayName.toLowerCase().contains('bibli'),
+                        onDelete: () async {
+                          final confirm = await showDialog<bool>(
+                            context: context,
+                            builder: (dialogContext) {
+                              return AlertDialog(
+                                title: const Text('Supprimer la conversation'),
+                                content: Text(
+                                  'Voulez-vous supprimer la conversation avec $displayName ?',
+                                ),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () {
+                                      Navigator.of(dialogContext).pop(false);
+                                    },
+                                    child: const Text('Annuler'),
+                                  ),
+                                  ElevatedButton(
+                                    onPressed: () {
+                                      Navigator.of(dialogContext).pop(true);
+                                    },
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: const Color(0xFFE74C3C),
+                                    ),
+                                    child: const Text('Supprimer'),
+                                  ),
+                                ],
+                              );
+                            },
+                          );
+
+                          if (confirm != true) return;
+                          if (!context.mounted) return;
+                          final success = await context
+                              .read<MessagesProvider>()
+                              .deleteConversation(
+                                conversationId: conversation.id,
+                                userId: currentUser.uid,
+                              );
+                          if (!context.mounted) return;
+
+                          if (!success) {
+                            final error =
+                                context.read<MessagesProvider>().error ??
+                                'Suppression impossible.';
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(error),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                            return;
+                          }
+
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Conversation supprimee.'),
+                              backgroundColor: Color(0xFF27AE60),
+                            ),
+                          );
+                        },
+                        onTap: () async {
+                          await context
+                              .read<MessagesProvider>()
+                              .markConversationAsRead(
+                                conversationId: conversation.id,
+                                userId: currentUser.uid,
+                              );
+                          if (!context.mounted) return;
+
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => ChatDetailScreen(
+                                conversation: conversation,
+                                currentUserId: currentUser.uid,
+                              ),
+                            ),
+                          );
+                        },
+                      );
+                    },
+                  ),
           ),
         ],
+      ),
+    );
+  }
+
+  List<ConversationModel> _filterConversations(
+    List<ConversationModel> conversations,
+    String currentUserId,
+    String query,
+  ) {
+    if (query.isEmpty) return conversations;
+    final normalized = query.toLowerCase();
+    return conversations.where((conversation) {
+      final name = conversation.displayNameFor(currentUserId).toLowerCase();
+      final preview = conversation.lastMessage.toLowerCase();
+      return name.contains(normalized) || preview.contains(normalized);
+    }).toList();
+  }
+
+  String _formatConversationTime(DateTime? date) {
+    if (date == null) return '--:--';
+    final now = DateTime.now();
+
+    if (_isSameDay(now, date)) {
+      final h = date.hour.toString().padLeft(2, '0');
+      final m = date.minute.toString().padLeft(2, '0');
+      return '$h:$m';
+    }
+
+    final yesterday = now.subtract(const Duration(days: 1));
+    if (_isSameDay(yesterday, date)) return 'Hier';
+
+    final d = date.day.toString().padLeft(2, '0');
+    final mo = date.month.toString().padLeft(2, '0');
+    return '$d/$mo';
+  }
+
+  bool _isSameDay(DateTime a, DateTime b) {
+    return a.year == b.year && a.month == b.month && a.day == b.day;
+  }
+
+  Future<void> _openCreateConversationDialog(String currentUserId) async {
+    final auth = context.read<AuthProvider>();
+    final currentUser = auth.currentUser;
+    if (currentUser == null) return;
+
+    final usersProvider = context.read<UsersProvider>();
+    usersProvider.loadUsers();
+    String search = '';
+
+    final result = await showDialog<Map<String, String>?>(
+      context: context,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: const Text('Nouvelle conversation'),
+              content: SizedBox(
+                width: 380,
+                child: Consumer<UsersProvider>(
+                  builder: (context, liveUsersProvider, _) {
+                    final filteredUsers = liveUsersProvider.users.where((user) {
+                      if (user.uid == currentUserId) return false;
+                      if (search.isEmpty) return true;
+
+                      final normalized = search.toLowerCase();
+                      return user.name.toLowerCase().contains(normalized) ||
+                          user.email.toLowerCase().contains(normalized) ||
+                          user.uid.toLowerCase().contains(normalized);
+                    }).toList();
+
+                    return Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        TextField(
+                          onChanged: (value) {
+                            setDialogState(() {
+                              search = value.trim();
+                            });
+                          },
+                          decoration: const InputDecoration(
+                            hintText: 'Rechercher un utilisateur...',
+                            prefixIcon: Icon(Icons.search),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        if (liveUsersProvider.isLoading &&
+                            liveUsersProvider.users.isEmpty)
+                          const Padding(
+                            padding: EdgeInsets.all(16),
+                            child: CircularProgressIndicator(),
+                          )
+                        else if (liveUsersProvider.error != null)
+                          Text(
+                            liveUsersProvider.error!,
+                            style: const TextStyle(color: Colors.red),
+                          )
+                        else if (filteredUsers.isEmpty)
+                          const Text(
+                            'Aucun utilisateur trouve.',
+                            style: TextStyle(color: Color(0xFF7F8C8D)),
+                          )
+                        else
+                          SizedBox(
+                            height: 280,
+                            child: ListView.builder(
+                              itemCount: filteredUsers.length,
+                              itemBuilder: (context, index) {
+                                final user = filteredUsers[index];
+                                return ListTile(
+                                  leading: const CircleAvatar(
+                                    child: Icon(Icons.person),
+                                  ),
+                                  title: Text(user.name),
+                                  subtitle: Text(user.email),
+                                  trailing: user.isAdmin
+                                      ? Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 10,
+                                            vertical: 4,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: const Color(0xFFE67E22),
+                                            borderRadius: BorderRadius.circular(
+                                              12,
+                                            ),
+                                          ),
+                                          child: const Text(
+                                            'ADMIN',
+                                            style: TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        )
+                                      : null,
+                                  onTap: () {
+                                    Navigator.of(dialogContext).pop({
+                                      'otherUid': user.uid,
+                                      'otherName': user.name,
+                                    });
+                                  },
+                                );
+                              },
+                            ),
+                          ),
+                      ],
+                    );
+                  },
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(dialogContext).pop();
+                  },
+                  child: const Text('Annuler'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+
+    if (result == null) return;
+    if (!mounted) return;
+    final messagesProvider = context.read<MessagesProvider>();
+
+    final conversationId = await messagesProvider.createConversation(
+      currentUserId: currentUser.uid,
+      currentUserName: currentUser.name,
+      otherUserId: result['otherUid']!,
+      otherUserName: result['otherName']!,
+    );
+
+    if (!mounted) return;
+
+    if (conversationId == null || conversationId.isEmpty) {
+      final error = messagesProvider.error ?? 'Creation impossible.';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error), backgroundColor: Colors.red),
+      );
+      return;
+    }
+
+    ConversationModel? conversation;
+    for (final item in messagesProvider.conversations) {
+      if (item.id == conversationId) {
+        conversation = item;
+        break;
+      }
+    }
+
+    conversation ??= ConversationModel(
+      id: conversationId,
+      participants: [currentUser.uid, result['otherUid']!],
+      participantNames: {
+        currentUser.uid: currentUser.name,
+        result['otherUid']!: result['otherName']!,
+      },
+      lastMessage: '',
+      lastMessageAt: null,
+      updatedAt: null,
+      unreadCount: {
+        currentUser.uid: 0,
+        result['otherUid']!: 0,
+      },
+    );
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ChatDetailScreen(
+          conversation: conversation!,
+          currentUserId: currentUser.uid,
+        ),
       ),
     );
   }

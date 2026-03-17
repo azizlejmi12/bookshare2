@@ -124,6 +124,40 @@ class AuthProvider with ChangeNotifier {
     }
   }
 
+  Future<bool> updateProfileName(String newName) async {
+    final user = _currentUser;
+    if (user == null) {
+      _setError('Utilisateur non connecte');
+      return false;
+    }
+
+    final trimmed = newName.trim();
+    if (trimmed.isEmpty) {
+      _setError('Le nom ne peut pas etre vide');
+      return false;
+    }
+
+    try {
+      _setLoading(true);
+      _clearError();
+
+      await _firestoreService.updateUser(
+        uid: user.uid,
+        name: trimmed,
+        email: user.email,
+      );
+
+      _currentUser = user.copyWith(name: trimmed);
+      _setLoading(false);
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _setError(e.toString());
+      _setLoading(false);
+      return false;
+    }
+  }
+
   /// Réinitialiser le mot de passe
   Future<bool> resetPassword(String email) async {
     try {

@@ -2,39 +2,42 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 class MessageModel {
   final String id;
+  final String conversationId;
   final String senderId;
-  final String receiverId;
-  final String content;
+  final String text;
   final DateTime sentAt;
-  final bool isRead;
+  final List<String> readBy;
 
   MessageModel({
     required this.id,
+    required this.conversationId,
     required this.senderId,
-    required this.receiverId,
-    required this.content,
+    required this.text,
     required this.sentAt,
-    required this.isRead,
+    required this.readBy,
   });
 
-  factory MessageModel.fromMap(Map<String, dynamic> data, String id) {
+  factory MessageModel.fromMap(
+    Map<String, dynamic> data,
+    String id,
+    String conversationId,
+  ) {
     return MessageModel(
       id: id,
+      conversationId: conversationId,
       senderId: data['senderId'] ?? '',
-      receiverId: data['receiverId'] ?? '',
-      content: data['content'] ?? '',
+      text: data['text'] ?? '',
       sentAt: (data['sentAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
-      isRead: data['isRead'] ?? false,
+      readBy: List<String>.from(data['readBy'] ?? const <String>[]),
     );
   }
 
   Map<String, dynamic> toMap() {
     return {
       'senderId': senderId,
-      'receiverId': receiverId,
-      'content': content,
+      'text': text,
       'sentAt': Timestamp.fromDate(sentAt),
-      'isRead': isRead,
+      'readBy': readBy,
     };
   }
 }
