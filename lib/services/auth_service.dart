@@ -138,9 +138,9 @@ class AuthService {
       case 'weak-password':
         return 'Mot de passe trop faible (min 6 caractères)';
       case 'user-not-found':
-        return 'Aucun utilisateur trouvé avec cet email';
       case 'wrong-password':
-        return 'Mot de passe incorrect';
+      case 'invalid-credential':
+        return 'Mot de passe ou email incorrect';
       case 'user-disabled':
         return 'Ce compte a été désactivé';
       case 'operation-not-allowed':

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../providers/auth_provider.dart';
 import '../../views/home/home_screen.dart';
 import 'register_screen.dart';
@@ -12,9 +13,42 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
+  static const String _rememberMeEmailKey = 'remember_me_email';
+
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
   bool obscurePassword = true;
+  bool rememberMe = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadRememberedEmail();
+  }
+
+  Future<void> _loadRememberedEmail() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedEmail = prefs.getString(_rememberMeEmailKey);
+
+    if (!mounted || savedEmail == null || savedEmail.isEmpty) {
+      return;
+    }
+
+    setState(() {
+      emailController.text = savedEmail;
+      rememberMe = true;
+    });
+  }
+
+  Future<void> _updateRememberMeEmail(String email) async {
+    final prefs = await SharedPreferences.getInstance();
+
+    if (rememberMe && email.isNotEmpty) {
+      await prefs.setString(_rememberMeEmailKey, email);
+    } else {
+      await prefs.remove(_rememberMeEmailKey);
+    }
+  }
 
   @override
   void dispose() {
@@ -36,6 +70,8 @@ class _LoginScreenState extends State<LoginScreen> {
     );
 
     if (success && mounted) {
+      await _updateRememberMeEmail(emailController.text.trim());
+
       // Connexion réussie - navigue vers HomeScreen
       debugPrint('📍 [LoginScreen] Navigation vers HomeScreen');
       if (mounted) {
@@ -50,6 +86,73 @@ class _LoginScreenState extends State<LoginScreen> {
     } else if (!success && mounted) {
       // Affiche l'erreur du provider
       _showError(authProvider.errorMessage ?? 'Erreur de connexion');
+    }
+  }
+
+  Future<void> _handleForgotPassword() async {
+    if (emailController.text.trim().isNotEmpty &&
+        !emailController.text.contains('@')) {
+      _showError('Veuillez entrer un email valide');
+      return;
+    }
+
+    final emailControllerDialog = TextEditingController(
+      text: emailController.text.trim(),
+    );
+
+    final email = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Mot de passe oublié ?'),
+          content: TextField(
+            controller: emailControllerDialog,
+            keyboardType: TextInputType.emailAddress,
+            decoration: const InputDecoration(
+              labelText: 'Adresse e-mail',
+              hintText: 'votre@email.com',
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('Annuler'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(
+                  dialogContext,
+                ).pop(emailControllerDialog.text.trim());
+              },
+              child: const Text('Envoyer'),
+            ),
+          ],
+        );
+      },
+    );
+
+    emailControllerDialog.dispose();
+
+    if (email == null || email.isEmpty) {
+      return;
+    }
+
+    if (!email.contains('@')) {
+      _showError('Veuillez entrer un email valide');
+      return;
+    }
+
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final success = await authProvider.resetPassword(email);
+
+    if (!mounted) {
+      return;
+    }
+
+    if (success) {
+      _showSuccess('Lien de réinitialisation envoyé à $email');
+    } else {
+      _showError(authProvider.errorMessage ?? 'Impossible d\'envoyer le lien');
     }
   }
 
@@ -167,7 +270,45 @@ class _LoginScreenState extends State<LoginScreen> {
 
                         // Mot de passe
                         _buildPasswordField(isLoading),
-                        const SizedBox(height: 30),
+                        const SizedBox(height: 12),
+
+                        Row(
+                          children: [
+                            Checkbox(
+                              value: rememberMe,
+                              onChanged: isLoading
+                                  ? null
+                                  : (value) {
+                                      setState(() {
+                                        rememberMe = value ?? false;
+                                      });
+                                    },
+                              activeColor: const Color(0xFF2C3E50),
+                            ),
+                            const Expanded(
+                              child: Text(
+                                'Se souvenir de moi',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Color(0xFF2C3E50),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: TextButton(
+                            onPressed: isLoading ? null : _handleForgotPassword,
+                            style: TextButton.styleFrom(
+                              foregroundColor: const Color(0xFF2C3E50),
+                              padding: EdgeInsets.zero,
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            ),
+                            child: const Text('Mot de passe oublié ?'),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
 
                         // Bouton Se connecter
                         SizedBox(
