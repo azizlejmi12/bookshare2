@@ -195,6 +195,7 @@ class _HomeContentState extends State<HomeContent> {
                                 title: book.title,
                                 author: book.author,
                                 isAvailable: book.isAvailable,
+                                coverUrl: book.coverUrl,
                                 gradientColors: _getGradientForGenre(
                                   book.genre,
                                 ),
@@ -239,6 +240,7 @@ class _HomeContentState extends State<HomeContent> {
                               title: book.title,
                               author: book.author,
                               isAvailable: book.isAvailable,
+                              coverUrl: book.coverUrl,
                               gradientColors: _getGradientForGenre(book.genre),
                             );
                           }).toList(),
@@ -514,6 +516,7 @@ class _EmpruntsContentState extends State<EmpruntsContent> {
         return EmpruntCard(
           title: book?.title ?? _bookFallbackLabel(loan.bookId),
           author: book?.author ?? 'Auteur inconnu',
+          coverUrl: book?.coverUrl,
           returnDate:
               '${dueDate.day.toString().padLeft(2, '0')}/${dueDate.month.toString().padLeft(2, '0')}/${dueDate.year}',
           isUrgent: isUrgent,
@@ -670,6 +673,7 @@ class _EmpruntsContentState extends State<EmpruntsContent> {
         return EmpruntCard(
           title: book?.title ?? _bookFallbackLabel(loan.bookId),
           author: book?.author ?? 'Auteur inconnu',
+          coverUrl: book?.coverUrl,
           returnDate:
               '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}',
           isUrgent: false,

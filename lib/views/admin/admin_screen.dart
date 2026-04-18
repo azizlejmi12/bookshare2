@@ -1,6 +1,11 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
+import '../../models/book_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/catalogue_provider.dart';
 import '../../providers/users_provider.dart';
@@ -332,6 +337,7 @@ class _BooksTabState extends State<BooksTab> {
   final _titleController = TextEditingController();
   final _authorController = TextEditingController();
   final _genreController = TextEditingController();
+  final ImagePicker _picker = ImagePicker();
 
   @override
   void initState() {
@@ -349,76 +355,148 @@ class _BooksTabState extends State<BooksTab> {
     super.dispose();
   }
 
-  void _showEditBookDialog(BuildContext context, book) {
+  Future<XFile?> _pickBookImage() async {
+    return _picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 60,
+      maxWidth: 700,
+    );
+  }
+
+  void _showEditBookDialog(BuildContext context, BookModel book) {
     final titleCtrl = TextEditingController(text: book.title);
     final authorCtrl = TextEditingController(text: book.author);
     final genreCtrl = TextEditingController(text: book.genre);
+    XFile? selectedCover;
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Modifier le livre'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: titleCtrl,
-              decoration: const InputDecoration(labelText: 'Titre'),
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Modifier le livre'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: titleCtrl,
+                  decoration: const InputDecoration(labelText: 'Titre'),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: authorCtrl,
+                  decoration: const InputDecoration(labelText: 'Auteur'),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: genreCtrl,
+                  decoration: const InputDecoration(labelText: 'Genre'),
+                ),
+                const SizedBox(height: 14),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'Image du livre',
+                    style: Theme.of(context).textTheme.titleSmall,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    OutlinedButton.icon(
+                      onPressed: () async {
+                        final picked = await _pickBookImage();
+                        if (picked != null) {
+                          setDialogState(() {
+                            selectedCover = picked;
+                          });
+                        }
+                      },
+                      icon: const Icon(Icons.image_outlined),
+                      label: const Text('Choisir image'),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        selectedCover != null
+                            ? 'Nouvelle image sélectionnée'
+                            : (book.coverUrl?.isNotEmpty == true
+                                  ? 'Image actuelle conservée'
+                                  : 'Aucune image'),
+                        style: const TextStyle(fontSize: 12),
+                      ),
+                    ),
+                  ],
+                ),
+                if (book.coverUrl?.isNotEmpty == true && selectedCover == null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: _buildBookCover(
+                      coverUrl: book.coverUrl,
+                      width: 84,
+                      height: 110,
+                    ),
+                  ),
+              ],
             ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: authorCtrl,
-              decoration: const InputDecoration(labelText: 'Auteur'),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Annuler'),
             ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: genreCtrl,
-              decoration: const InputDecoration(labelText: 'Genre'),
+            ElevatedButton(
+              onPressed: () async {
+                if (titleCtrl.text.trim().isEmpty ||
+                    authorCtrl.text.trim().isEmpty ||
+                    genreCtrl.text.trim().isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Veuillez remplir tous les champs'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                  return;
+                }
+
+                try {
+                  await context.read<CatalogueProvider>().updateBook(
+                    bookId: book.id,
+                    title: titleCtrl.text.trim(),
+                    author: authorCtrl.text.trim(),
+                    genre: genreCtrl.text.trim(),
+                    coverImage: selectedCover,
+                  );
+
+                  if (context.mounted) {
+                    Navigator.pop(dialogContext);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Livre modifie avec succes'),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
+                  }
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Echec modification/upload: $e'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                }
+              },
+              child: const Text('Enregistrer'),
             ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Annuler'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              if (titleCtrl.text.trim().isEmpty ||
-                  authorCtrl.text.trim().isEmpty ||
-                  genreCtrl.text.trim().isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Veuillez remplir tous les champs'),
-                    backgroundColor: Colors.red,
-                  ),
-                );
-                return;
-              }
-              await context.read<CatalogueProvider>().updateBook(
-                bookId: book.id,
-                title: titleCtrl.text.trim(),
-                author: authorCtrl.text.trim(),
-                genre: genreCtrl.text.trim(),
-              );
-              if (context.mounted) {
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Livre modifie avec succes'),
-                    backgroundColor: Colors.green,
-                  ),
-                );
-              }
-            },
-            child: const Text('Enregistrer'),
-          ),
-        ],
       ),
     );
   }
 
-  void _showDeleteBookDialog(BuildContext context, book) {
+  void _showDeleteBookDialog(BuildContext context, BookModel book) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -457,68 +535,119 @@ class _BooksTabState extends State<BooksTab> {
     _titleController.clear();
     _authorController.clear();
     _genreController.clear();
+    XFile? selectedCover;
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Ajouter un livre'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: _titleController,
-              decoration: const InputDecoration(labelText: 'Titre'),
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Ajouter un livre'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: _titleController,
+                  decoration: const InputDecoration(labelText: 'Titre'),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: _authorController,
+                  decoration: const InputDecoration(labelText: 'Auteur'),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: _genreController,
+                  decoration: const InputDecoration(labelText: 'Genre'),
+                ),
+                const SizedBox(height: 14),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'Image du livre (optionnel)',
+                    style: Theme.of(context).textTheme.titleSmall,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    OutlinedButton.icon(
+                      onPressed: () async {
+                        final picked = await _pickBookImage();
+                        if (picked != null) {
+                          setDialogState(() {
+                            selectedCover = picked;
+                          });
+                        }
+                      },
+                      icon: const Icon(Icons.image_outlined),
+                      label: const Text('Choisir image'),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        selectedCover != null
+                            ? 'Image sélectionnée'
+                            : 'Aucune image',
+                        style: const TextStyle(fontSize: 12),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: _authorController,
-              decoration: const InputDecoration(labelText: 'Auteur'),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Annuler'),
             ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: _genreController,
-              decoration: const InputDecoration(labelText: 'Genre'),
+            ElevatedButton(
+              onPressed: () async {
+                if (_titleController.text.trim().isEmpty ||
+                    _authorController.text.trim().isEmpty ||
+                    _genreController.text.trim().isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Veuillez remplir tous les champs'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                  return;
+                }
+
+                try {
+                  await context.read<CatalogueProvider>().addBook(
+                    title: _titleController.text.trim(),
+                    author: _authorController.text.trim(),
+                    genre: _genreController.text.trim(),
+                    coverImage: selectedCover,
+                  );
+
+                  if (context.mounted) {
+                    Navigator.pop(dialogContext);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Livre ajoute avec succes'),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
+                  }
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Echec ajout/upload: $e'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                }
+              },
+              child: const Text('Ajouter'),
             ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Annuler'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              if (_titleController.text.trim().isEmpty ||
-                  _authorController.text.trim().isEmpty ||
-                  _genreController.text.trim().isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Veuillez remplir tous les champs'),
-                    backgroundColor: Colors.red,
-                  ),
-                );
-                return;
-              }
-
-              await context.read<CatalogueProvider>().addBook(
-                title: _titleController.text.trim(),
-                author: _authorController.text.trim(),
-                genre: _genreController.text.trim(),
-              );
-
-              if (context.mounted) {
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Livre ajoute avec succes'),
-                    backgroundColor: Colors.green,
-                  ),
-                );
-              }
-            },
-            child: const Text('Ajouter'),
-          ),
-        ],
       ),
     );
   }
@@ -545,21 +674,37 @@ class _BooksTabState extends State<BooksTab> {
                     vertical: 6,
                   ),
                   child: ListTile(
-                    leading: Container(
-                      width: 44,
-                      height: 60,
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: book.isAvailable
-                              ? [const Color(0xFF667eea), const Color(0xFF764ba2)]
-                              : [Colors.grey.shade400, Colors.grey.shade600],
-                        ),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Icon(
-                        Icons.menu_book,
-                        color: Colors.white,
-                        size: 24,
+                    leading: ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: SizedBox(
+                        width: 44,
+                        height: 60,
+                        child: (book.coverUrl != null && book.coverUrl!.isNotEmpty)
+                            ? _buildBookCover(
+                                coverUrl: book.coverUrl,
+                                width: 44,
+                                height: 60,
+                              )
+                            : Container(
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    colors: book.isAvailable
+                                        ? [
+                                            const Color(0xFF667eea),
+                                            const Color(0xFF764ba2),
+                                          ]
+                                        : [
+                                            Colors.grey.shade400,
+                                            Colors.grey.shade600,
+                                          ],
+                                  ),
+                                ),
+                                child: const Icon(
+                                  Icons.menu_book,
+                                  color: Colors.white,
+                                  size: 24,
+                                ),
+                              ),
                       ),
                     ),
                     title: Text(
@@ -683,5 +828,53 @@ class _BooksTabState extends State<BooksTab> {
               },
             ),
     );
+  }
+
+  Widget _buildBookCover({
+    required String? coverUrl,
+    required double width,
+    required double height,
+  }) {
+    if (coverUrl == null || coverUrl.isEmpty) {
+      return Container(
+        width: width,
+        height: height,
+        color: Colors.grey.shade200,
+      );
+    }
+
+    final bytes = _decodeDataUrl(coverUrl);
+    if (bytes != null) {
+      return Image.memory(
+        bytes,
+        width: width,
+        height: height,
+        fit: BoxFit.cover,
+      );
+    }
+
+    return Image.network(
+      coverUrl,
+      width: width,
+      height: height,
+      fit: BoxFit.cover,
+      errorBuilder: (_, __, ___) => Container(
+        width: width,
+        height: height,
+        color: Colors.grey.shade200,
+      ),
+    );
+  }
+
+  Uint8List? _decodeDataUrl(String value) {
+    if (!value.startsWith('data:image')) return null;
+    final commaIndex = value.indexOf(',');
+    if (commaIndex == -1 || commaIndex == value.length - 1) return null;
+
+    try {
+      return base64Decode(value.substring(commaIndex + 1));
+    } catch (_) {
+      return null;
+    }
   }
 }

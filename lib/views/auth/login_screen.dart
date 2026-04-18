@@ -142,6 +142,10 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
 
+    if (!mounted) {
+      return;
+    }
+
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final success = await authProvider.resetPassword(email);
 

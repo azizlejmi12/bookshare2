@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 
 // Widget pour UN livre emprunté
@@ -6,6 +9,7 @@ class EmpruntCard extends StatelessWidget {
   final String author;
   final String returnDate;
   final bool isUrgent; // True = moins de 3 jours
+  final String? coverUrl;
   final List<Color> gradientColors;
   final String primaryActionLabel;
   final String secondaryActionLabel;
@@ -18,6 +22,7 @@ class EmpruntCard extends StatelessWidget {
     required this.author,
     required this.returnDate,
     required this.isUrgent,
+    this.coverUrl,
     required this.gradientColors,
     this.primaryActionLabel = 'Voir le livre',
     this.secondaryActionLabel = 'Prolonger',
@@ -40,16 +45,14 @@ class EmpruntCard extends StatelessWidget {
           Row(
             children: [
               // Image du livre
-              Container(
-                width: 80,
-                height: 110,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: gradientColors,
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(8),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: SizedBox(
+                  width: 80,
+                  height: 110,
+                  child: (coverUrl != null && coverUrl!.isNotEmpty)
+                      ? _buildCoverImage(coverUrl!)
+                      : _buildGradientPlaceholder(),
                 ),
               ),
 
@@ -144,5 +147,46 @@ class EmpruntCard extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  Widget _buildGradientPlaceholder() {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: gradientColors,
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCoverImage(String source) {
+    final bytes = _decodeDataUrl(source);
+    if (bytes != null) {
+      return Image.memory(
+        bytes,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => _buildGradientPlaceholder(),
+      );
+    }
+
+    return Image.network(
+      source,
+      fit: BoxFit.cover,
+      errorBuilder: (_, __, ___) => _buildGradientPlaceholder(),
+    );
+  }
+
+  Uint8List? _decodeDataUrl(String value) {
+    if (!value.startsWith('data:image')) return null;
+    final commaIndex = value.indexOf(',');
+    if (commaIndex == -1 || commaIndex == value.length - 1) return null;
+
+    try {
+      return base64Decode(value.substring(commaIndex + 1));
+    } catch (_) {
+      return null;
+    }
   }
 }

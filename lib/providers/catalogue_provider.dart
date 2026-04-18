@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../models/book_model.dart';
 import '../services/book_service.dart';
@@ -67,8 +68,14 @@ class CatalogueProvider extends ChangeNotifier {
     required String title,
     required String author,
     required String genre,
+    XFile? coverImage,
   }) {
-    return _bookService.addBook(title: title, author: author, genre: genre);
+    return _bookService.addBook(
+      title: title,
+      author: author,
+      genre: genre,
+      coverImage: coverImage,
+    );
   }
 
   Future<void> updateBook({
@@ -76,12 +83,14 @@ class CatalogueProvider extends ChangeNotifier {
     required String title,
     required String author,
     required String genre,
+    XFile? coverImage,
   }) {
     return _bookService.updateBook(
       bookId: bookId,
       title: title,
       author: author,
       genre: genre,
+      coverImage: coverImage,
     );
   }
 

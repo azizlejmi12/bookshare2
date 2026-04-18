@@ -99,6 +99,7 @@ class _CatalogueScreenState extends State<CatalogueScreen> {
                             title: book.title,
                             author: book.author,
                             isAvailable: book.isAvailable,
+                            coverUrl: book.coverUrl,
                             gradientColors: _getGradientForGenre(book.genre),
                             onBorrow: () async {
                               final auth = context.read<AuthProvider>();

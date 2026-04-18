@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 
 // Widget pour UNE carte livre (utilisé partout)
@@ -5,6 +8,7 @@ class BookCard extends StatelessWidget {
   final String title;      // Titre du livre
   final String author;     // Nom de l'auteur
   final bool isAvailable;  // Disponible ou prêté
+  final String? coverUrl;  // URL de la couverture
   final List<Color> gradientColors; // Couleurs du dégradé
 
   const BookCard({
@@ -12,6 +16,7 @@ class BookCard extends StatelessWidget {
     required this.title,
     required this.author,
     required this.isAvailable,
+    this.coverUrl,
     required this.gradientColors,
   });
 
@@ -20,17 +25,15 @@ class BookCard extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // IMAGE (dégradé)
-        Container(
-          width: 140,
-          height: 200,
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: gradientColors,
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.circular(12),
+        // IMAGE (photo réseau si disponible, sinon dégradé)
+        ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: SizedBox(
+            width: 140,
+            height: 200,
+            child: (coverUrl != null && coverUrl!.isNotEmpty)
+                ? _buildCoverImage(coverUrl!)
+                : _buildGradientPlaceholder(),
           ),
         ),
         
@@ -82,5 +85,46 @@ class BookCard extends StatelessWidget {
         ),
       ],
     );
+  }
+
+  Widget _buildGradientPlaceholder() {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: gradientColors,
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCoverImage(String source) {
+    final bytes = _decodeDataUrl(source);
+    if (bytes != null) {
+      return Image.memory(
+        bytes,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => _buildGradientPlaceholder(),
+      );
+    }
+
+    return Image.network(
+      source,
+      fit: BoxFit.cover,
+      errorBuilder: (_, __, ___) => _buildGradientPlaceholder(),
+    );
+  }
+
+  Uint8List? _decodeDataUrl(String value) {
+    if (!value.startsWith('data:image')) return null;
+    final commaIndex = value.indexOf(',');
+    if (commaIndex == -1 || commaIndex == value.length - 1) return null;
+
+    try {
+      return base64Decode(value.substring(commaIndex + 1));
+    } catch (_) {
+      return null;
+    }
   }
 }

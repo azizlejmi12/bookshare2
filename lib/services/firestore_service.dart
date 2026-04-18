@@ -116,18 +116,22 @@ class FirestoreService {
   }
 
   // Ajouter un livre (admin)
-  Future<void> addBook({
+  Future<String> addBook({
     required String title,
     required String author,
     required String genre,
+    String? coverUrl,
   }) async {
-    await _db.collection('books').add({
+    final docRef = await _db.collection('books').add({
       'title': title,
       'author': author,
       'genre': genre,
       'isAvailable': true,
+      'coverUrl': coverUrl,
       'createdAt': FieldValue.serverTimestamp(),
     });
+
+    return docRef.id;
   }
 
   // Modifier disponibilité d'un livre
@@ -143,12 +147,19 @@ class FirestoreService {
     required String title,
     required String author,
     required String genre,
+    String? coverUrl,
   }) async {
-    await _db.collection('books').doc(bookId).update({
+    final payload = <String, dynamic>{
       'title': title,
       'author': author,
       'genre': genre,
-    });
+    };
+
+    if (coverUrl != null) {
+      payload['coverUrl'] = coverUrl;
+    }
+
+    await _db.collection('books').doc(bookId).update(payload);
   }
 
   // Supprimer un livre

@@ -45,5 +45,7 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Cette application a besoin d'acces a vos photos pour ajouter une image de couverture au livre.</string>
 </dict>
 </plist>

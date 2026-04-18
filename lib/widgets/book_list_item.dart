@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 
 // Widget pour les livres en format liste (Nouveautés)
@@ -5,6 +8,7 @@ class BookListItem extends StatelessWidget {
   final String title;
   final String author;
   final bool isAvailable;
+  final String? coverUrl;
   final List<Color> gradientColors;
   final VoidCallback? onBorrow;
 
@@ -13,6 +17,7 @@ class BookListItem extends StatelessWidget {
     required this.title,
     required this.author,
     required this.isAvailable,
+    this.coverUrl,
     required this.gradientColors,
     this.onBorrow,
   });
@@ -36,16 +41,14 @@ class BookListItem extends StatelessWidget {
       child: Row(
         children: [
           // Image petite
-          Container(
-            width: 80,
-            height: 110,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: gradientColors,
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(8),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: SizedBox(
+              width: 80,
+              height: 110,
+              child: (coverUrl != null && coverUrl!.isNotEmpty)
+                  ? _buildCoverImage(coverUrl!)
+                  : _buildGradientPlaceholder(),
             ),
           ),
 
@@ -119,5 +122,46 @@ class BookListItem extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  Widget _buildGradientPlaceholder() {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: gradientColors,
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCoverImage(String source) {
+    final bytes = _decodeDataUrl(source);
+    if (bytes != null) {
+      return Image.memory(
+        bytes,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => _buildGradientPlaceholder(),
+      );
+    }
+
+    return Image.network(
+      source,
+      fit: BoxFit.cover,
+      errorBuilder: (_, __, ___) => _buildGradientPlaceholder(),
+    );
+  }
+
+  Uint8List? _decodeDataUrl(String value) {
+    if (!value.startsWith('data:image')) return null;
+    final commaIndex = value.indexOf(',');
+    if (commaIndex == -1 || commaIndex == value.length - 1) return null;
+
+    try {
+      return base64Decode(value.substring(commaIndex + 1));
+    } catch (_) {
+      return null;
+    }
   }
 }
