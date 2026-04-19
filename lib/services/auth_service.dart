@@ -1,4 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart' show debugPrint;
 import '../models/user_model.dart';
 import 'firestore_service.dart';
@@ -50,7 +51,15 @@ class AuthService {
         isAdmin: false,
       );
 
-      await _firestoreService.saveUser(userModel);
+      try {
+        await _firestoreService.saveUser(userModel);
+      } on FirebaseException catch (e) {
+        // Ne pas bloquer l'inscription si les règles Firestore refusent la création.
+        if (e.code != 'permission-denied') rethrow;
+        debugPrint(
+          '⚠️ [AuthService] Firestore refuse saveUser (${e.code}). Inscription Auth conservée.',
+        );
+      }
 
       return userModel;
     } on FirebaseAuthException catch (e) {
@@ -86,7 +95,15 @@ class AuthService {
       final firebaseUser = userCredential.user!;
 
       // Récupérer l'utilisateur depuis Firestore pour avoir isAdmin
-      UserModel? userModel = await _firestoreService.getUser(firebaseUser.uid);
+      UserModel? userModel;
+      try {
+        userModel = await _firestoreService.getUser(firebaseUser.uid);
+      } on FirebaseException catch (e) {
+        if (e.code != 'permission-denied') rethrow;
+        debugPrint(
+          '⚠️ [AuthService] Firestore refuse getUser (${e.code}). Fallback profil local.',
+        );
+      }
 
       // Si pas dans Firestore, créer un nouveau
       userModel ??= UserModel(

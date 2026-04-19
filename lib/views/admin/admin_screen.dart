@@ -124,7 +124,9 @@ class _UsersTabState extends State<UsersTab> {
                   passwordController.text.length < 6) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
-                    content: Text('Veuillez remplir tous les champs (mdp > 6)'),
+                    content: Text(
+                      'Veuillez remplir tous les champs (mot de passe > 6 caractères).',
+                    ),
                     backgroundColor: Colors.red,
                   ),
                 );
@@ -142,7 +144,7 @@ class _UsersTabState extends State<UsersTab> {
                   Navigator.pop(context);
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
-                      content: Text('Utilisateur cree avec succes'),
+                      content: Text('Utilisateur créé avec succès.'),
                       backgroundColor: Colors.green,
                     ),
                   );
@@ -151,7 +153,7 @@ class _UsersTabState extends State<UsersTab> {
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text('Erreur: $e'),
+                      content: Text('Une erreur est survenue : $e'),
                       backgroundColor: Colors.red,
                     ),
                   );
@@ -204,7 +206,7 @@ class _UsersTabState extends State<UsersTab> {
               if (context.mounted) {
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Utilisateur modifie')),
+                  const SnackBar(content: Text('Utilisateur modifié.')),
                 );
               }
             },
@@ -234,7 +236,7 @@ class _UsersTabState extends State<UsersTab> {
               if (context.mounted) {
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('${user.name} supprime')),
+                  SnackBar(content: Text('${user.name} supprimé.')),
                 );
               }
             },
@@ -452,7 +454,7 @@ class _BooksTabState extends State<BooksTab> {
                     genreCtrl.text.trim().isEmpty) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
-                      content: Text('Veuillez remplir tous les champs'),
+                      content: Text('Veuillez remplir tous les champs.'),
                       backgroundColor: Colors.red,
                     ),
                   );
@@ -472,7 +474,7 @@ class _BooksTabState extends State<BooksTab> {
                     Navigator.pop(dialogContext);
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
-                        content: Text('Livre modifie avec succes'),
+                        content: Text('Livre modifié avec succès.'),
                         backgroundColor: Colors.green,
                       ),
                     );
@@ -481,7 +483,9 @@ class _BooksTabState extends State<BooksTab> {
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: Text('Echec modification/upload: $e'),
+                        content: Text(
+                          'Échec de la modification ou de l\'envoi de l\'image : $e',
+                        ),
                         backgroundColor: Colors.red,
                       ),
                     );
@@ -515,7 +519,7 @@ class _BooksTabState extends State<BooksTab> {
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text('"${book.title}" supprime'),
+                    content: Text('"${book.title}" supprimé.'),
                     backgroundColor: Colors.red,
                   ),
                 );
@@ -679,7 +683,8 @@ class _BooksTabState extends State<BooksTab> {
                       child: SizedBox(
                         width: 44,
                         height: 60,
-                        child: (book.coverUrl != null && book.coverUrl!.isNotEmpty)
+                        child:
+                            (book.coverUrl != null && book.coverUrl!.isNotEmpty)
                             ? _buildBookCover(
                                 coverUrl: book.coverUrl,
                                 width: 44,
@@ -724,7 +729,9 @@ class _BooksTabState extends State<BooksTab> {
                                 vertical: 2,
                               ),
                               decoration: BoxDecoration(
-                                color: const Color(0xFF2C3E50).withValues(alpha: 0.1),
+                                color: const Color(
+                                  0xFF2C3E50,
+                                ).withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: Text(
@@ -740,7 +747,9 @@ class _BooksTabState extends State<BooksTab> {
                               ),
                               decoration: BoxDecoration(
                                 color: book.isAvailable
-                                    ? const Color(0xFF27AE60).withValues(alpha: 0.15)
+                                    ? const Color(
+                                        0xFF27AE60,
+                                      ).withValues(alpha: 0.15)
                                     : Colors.orange.withValues(alpha: 0.15),
                                 borderRadius: BorderRadius.circular(12),
                               ),
@@ -780,7 +789,11 @@ class _BooksTabState extends State<BooksTab> {
                           value: 'edit',
                           child: Row(
                             children: [
-                              Icon(Icons.edit, size: 18, color: Color(0xFF2C3E50)),
+                              Icon(
+                                Icons.edit,
+                                size: 18,
+                                color: Color(0xFF2C3E50),
+                              ),
                               SizedBox(width: 8),
                               Text('Modifier'),
                             ],
@@ -858,11 +871,8 @@ class _BooksTabState extends State<BooksTab> {
       width: width,
       height: height,
       fit: BoxFit.cover,
-      errorBuilder: (_, __, ___) => Container(
-        width: width,
-        height: height,
-        color: Colors.grey.shade200,
-      ),
+      errorBuilder: (_, __, ___) =>
+          Container(width: width, height: height, color: Colors.grey.shade200),
     );
   }
 

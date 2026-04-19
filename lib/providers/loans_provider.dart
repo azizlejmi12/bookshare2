@@ -13,12 +13,15 @@ class LoansProvider extends ChangeNotifier {
   List<LoanModel> _activeLoans = [];
   List<LoanModel> _historyLoans = [];
   bool _isLoading = false;
-  String? _error;
+  String? _activeError;
+  String? _historyError;
 
   List<LoanModel> get activeLoans => _activeLoans;
   List<LoanModel> get historyLoans => _historyLoans;
   bool get isLoading => _isLoading;
-  String? get error => _error;
+  String? get activeError => _activeError;
+  String? get historyError => _historyError;
+  String? get error => _activeError ?? _historyError;
 
   String _formatError(Object error) {
     final message = error.toString();
@@ -29,13 +32,19 @@ class LoansProvider extends ChangeNotifier {
   }
 
   void clearError() {
-    _error = null;
+    _activeError = null;
+    _historyError = null;
     notifyListeners();
   }
 
   void watchUserLoans(String userId) {
     _isLoading = true;
+    _activeError = null;
+    _historyError = null;
     notifyListeners();
+
+    // Déclenche un check de rappel une fois lors de l'ouverture de l'écran.
+    _loanService.sendDueSoonRemindersForUser(userId).catchError((_) {});
 
     _activeSub?.cancel();
     _historySub?.cancel();
@@ -45,26 +54,30 @@ class LoansProvider extends ChangeNotifier {
         .listen(
           (loans) {
             _activeLoans = loans;
+            _activeError = null;
             _isLoading = false;
             notifyListeners();
           },
           onError: (e) {
-            _error = _formatError(e);
+            _activeError = _formatError(e);
             _isLoading = false;
             notifyListeners();
           },
         );
 
-    _historySub = _loanService.getUserLoanHistory(userId).listen(
-      (loans) {
-        _historyLoans = loans;
-        notifyListeners();
-      },
-      onError: (e) {
-        _error = _formatError(e);
-        notifyListeners();
-      },
-    );
+    _historySub = _loanService
+        .getUserLoanHistory(userId)
+        .listen(
+          (loans) {
+            _historyLoans = loans;
+            _historyError = null;
+            notifyListeners();
+          },
+          onError: (e) {
+            _historyError = _formatError(e);
+            notifyListeners();
+          },
+        );
   }
 
   Future<bool> borrowBook({
@@ -73,7 +86,7 @@ class LoansProvider extends ChangeNotifier {
     int durationDays = 7,
   }) async {
     try {
-      _error = null;
+      _activeError = null;
       await _loanService.borrowBook(
         userId: userId,
         bookId: bookId,
@@ -82,7 +95,7 @@ class LoansProvider extends ChangeNotifier {
       notifyListeners();
       return true;
     } catch (e) {
-      _error = _formatError(e);
+      _activeError = _formatError(e);
       notifyListeners();
       return false;
     }
@@ -90,12 +103,23 @@ class LoansProvider extends ChangeNotifier {
 
   Future<bool> returnBook(String loanId, String bookId) async {
     try {
-      _error = null;
+      _activeError = null;
       await _loanService.returnBook(loanId, bookId);
       notifyListeners();
       return true;
     } catch (e) {
-      _error = _formatError(e);
+      final errorMsg = e.toString();
+
+      // Mapper les erreurs Firestore spécifiques
+      if (errorMsg.contains('permission-denied')) {
+        _activeError =
+            'Permission refusée. Vérifiez que vous êtes connecté et que cet emprunt vous appartient.';
+      } else if (errorMsg.contains('not-found')) {
+        _activeError = 'Cet emprunt n\'existe pas ou a été supprimé.';
+      } else {
+        _activeError = _formatError(e);
+      }
+
       notifyListeners();
       return false;
     }
@@ -103,12 +127,12 @@ class LoansProvider extends ChangeNotifier {
 
   Future<bool> renewLoan(String loanId, {int extraDays = 7}) async {
     try {
-      _error = null;
+      _activeError = null;
       await _loanService.renewLoan(loanId, extraDays: extraDays);
       notifyListeners();
       return true;
     } catch (e) {
-      _error = _formatError(e);
+      _activeError = _formatError(e);
       notifyListeners();
       return false;
     }

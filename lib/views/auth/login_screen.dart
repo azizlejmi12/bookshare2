@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart' as fb_auth;
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../providers/auth_provider.dart';
@@ -14,6 +15,7 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   static const String _rememberMeEmailKey = 'remember_me_email';
+  static const String _rememberMeEnabledKey = 'remember_me_enabled';
 
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
@@ -29,25 +31,59 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _loadRememberedEmail() async {
     final prefs = await SharedPreferences.getInstance();
     final savedEmail = prefs.getString(_rememberMeEmailKey);
+    final rememberEnabled = prefs.getBool(_rememberMeEnabledKey) ?? false;
+    final hasLegacyEmail = savedEmail != null && savedEmail.isNotEmpty;
+    final shouldRemember = rememberEnabled || hasLegacyEmail;
 
-    if (!mounted || savedEmail == null || savedEmail.isEmpty) {
+    if (!mounted || !shouldRemember) {
       return;
     }
 
+    if (!rememberEnabled && hasLegacyEmail) {
+      // Migration douce: anciennes versions ne stockaient que l'email.
+      await prefs.setBool(_rememberMeEnabledKey, true);
+    }
+
     setState(() {
-      emailController.text = savedEmail;
+      if (savedEmail != null && savedEmail.isNotEmpty) {
+        emailController.text = savedEmail;
+      }
       rememberMe = true;
     });
+
+    // Si la session Firebase existe encore, entrer directement.
+    final currentFirebaseUser = fb_auth.FirebaseAuth.instance.currentUser;
+    if (currentFirebaseUser != null && mounted) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => const HomeScreen()),
+          (route) => false,
+        );
+      });
+    }
   }
 
-  Future<void> _updateRememberMeEmail(String email) async {
+  Future<void> _persistRememberMeState({String? email}) async {
     final prefs = await SharedPreferences.getInstance();
 
-    if (rememberMe && email.isNotEmpty) {
-      await prefs.setString(_rememberMeEmailKey, email);
+    if (rememberMe) {
+      await prefs.setBool(_rememberMeEnabledKey, true);
+      if (email != null && email.isNotEmpty) {
+        await prefs.setString(_rememberMeEmailKey, email);
+      }
     } else {
+      await prefs.setBool(_rememberMeEnabledKey, false);
       await prefs.remove(_rememberMeEmailKey);
     }
+  }
+
+  Future<void> _setRememberMe(bool value) async {
+    setState(() {
+      rememberMe = value;
+    });
+
+    await _persistRememberMeState(email: emailController.text.trim());
   }
 
   @override
@@ -70,7 +106,7 @@ class _LoginScreenState extends State<LoginScreen> {
     );
 
     if (success && mounted) {
-      await _updateRememberMeEmail(emailController.text.trim());
+      await _persistRememberMeState(email: emailController.text.trim());
 
       // Connexion réussie - navigue vers HomeScreen
       debugPrint('📍 [LoginScreen] Navigation vers HomeScreen');
@@ -85,14 +121,14 @@ class _LoginScreenState extends State<LoginScreen> {
       passwordController.clear();
     } else if (!success && mounted) {
       // Affiche l'erreur du provider
-      _showError(authProvider.errorMessage ?? 'Erreur de connexion');
+      _showError(authProvider.errorMessage ?? 'Erreur de connexion.');
     }
   }
 
   Future<void> _handleForgotPassword() async {
     if (emailController.text.trim().isNotEmpty &&
         !emailController.text.contains('@')) {
-      _showError('Veuillez entrer un email valide');
+      _showError('Veuillez entrer une adresse e-mail valide.');
       return;
     }
 
@@ -138,7 +174,7 @@ class _LoginScreenState extends State<LoginScreen> {
     }
 
     if (!email.contains('@')) {
-      _showError('Veuillez entrer un email valide');
+      _showError('Veuillez entrer une adresse e-mail valide.');
       return;
     }
 
@@ -156,25 +192,28 @@ class _LoginScreenState extends State<LoginScreen> {
     if (success) {
       _showSuccess('Lien de réinitialisation envoyé à $email');
     } else {
-      _showError(authProvider.errorMessage ?? 'Impossible d\'envoyer le lien');
+      _showError(
+        authProvider.errorMessage ??
+            'Impossible d\'envoyer le lien de réinitialisation.',
+      );
     }
   }
 
   bool _validateFields() {
     if (emailController.text.trim().isEmpty) {
-      _showError('Veuillez entrer votre email');
+      _showError('Veuillez entrer votre adresse e-mail.');
       return false;
     }
     if (!emailController.text.contains('@')) {
-      _showError('Veuillez entrer un email valide');
+      _showError('Veuillez entrer une adresse e-mail valide.');
       return false;
     }
     if (passwordController.text.isEmpty) {
-      _showError('Veuillez entrer votre mot de passe');
+      _showError('Veuillez entrer votre mot de passe.');
       return false;
     }
     if (passwordController.text.length < 6) {
-      _showError('Le mot de passe doit faire au moins 6 caractères');
+      _showError('Le mot de passe doit contenir au moins 6 caractères.');
       return false;
     }
     return true;
@@ -282,11 +321,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               value: rememberMe,
                               onChanged: isLoading
                                   ? null
-                                  : (value) {
-                                      setState(() {
-                                        rememberMe = value ?? false;
-                                      });
-                                    },
+                                  : (value) => _setRememberMe(value ?? false),
                               activeColor: const Color(0xFF2C3E50),
                             ),
                             const Expanded(
@@ -416,6 +451,11 @@ class _LoginScreenState extends State<LoginScreen> {
           controller: controller,
           keyboardType: TextInputType.emailAddress,
           enabled: !isLoading,
+          onChanged: (value) {
+            if (rememberMe) {
+              _persistRememberMeState(email: value.trim());
+            }
+          },
           decoration: InputDecoration(
             hintText: hint,
             prefixIcon: Icon(icon, color: const Color(0xFF7F8C8D)),

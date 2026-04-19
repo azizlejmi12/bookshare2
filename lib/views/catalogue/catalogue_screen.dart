@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../models/book_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/catalogue_provider.dart';
 import '../../providers/loans_provider.dart';
 import '../../widgets/book_list_item.dart';
 import '../../widgets/category_chip.dart';
+import '../../widgets/review_widget.dart';
 
 class CatalogueScreen extends StatefulWidget {
   const CatalogueScreen({super.key});
@@ -14,6 +16,9 @@ class CatalogueScreen extends StatefulWidget {
 }
 
 class _CatalogueScreenState extends State<CatalogueScreen> {
+  final Set<String> _busyBookIds = <String>{};
+  final Set<String> _alertRegisteredBookIds = <String>{};
+
   @override
   void initState() {
     super.initState();
@@ -89,19 +94,38 @@ class _CatalogueScreenState extends State<CatalogueScreen> {
                 child: bookProvider.isLoading
                     ? const Center(child: CircularProgressIndicator())
                     : bookProvider.error != null
-                    ? Center(child: Text('Erreur: ${bookProvider.error}'))
+                    ? Center(
+                        child: Text(
+                          'Erreur lors du chargement du catalogue : ${bookProvider.error}',
+                        ),
+                      )
                     : ListView.builder(
                         padding: const EdgeInsets.all(20),
                         itemCount: bookProvider.filteredBooks.length,
                         itemBuilder: (context, index) {
                           final book = bookProvider.filteredBooks[index];
+                          final isBusy = _busyBookIds.contains(book.id);
+                          final hasRegisteredAlert =
+                              _alertRegisteredBookIds.contains(book.id) &&
+                              !book.isAvailable;
+
                           return BookListItem(
                             title: book.title,
                             author: book.author,
                             isAvailable: book.isAvailable,
                             coverUrl: book.coverUrl,
                             gradientColors: _getGradientForGenre(book.genre),
-                            onBorrow: () async {
+                            isActionLoading: isBusy,
+                            actionLabel: hasRegisteredAlert
+                              ? 'Alerte créée'
+                                : null,
+                            onBorrow: (isBusy || hasRegisteredAlert)
+                                ? null
+                                : () async {
+                              setState(() {
+                                _busyBookIds.add(book.id);
+                              });
+
                               final auth = context.read<AuthProvider>();
                               final loans = context.read<LoansProvider>();
 
@@ -117,30 +141,58 @@ class _CatalogueScreenState extends State<CatalogueScreen> {
                                     ),
                                   );
                                 }
+                                setState(() {
+                                  _busyBookIds.remove(book.id);
+                                });
                                 return;
                               }
 
-                              final success = await loans.borrowBook(
-                                userId: auth.currentUser!.uid,
-                                bookId: book.id,
-                                durationDays: 7,
-                              );
+                              try {
+                                final success = await loans.borrowBook(
+                                  userId: auth.currentUser!.uid,
+                                  bookId: book.id,
+                                  durationDays: 7,
+                                );
 
-                              if (!context.mounted) return;
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(
-                                    success
-                                        ? 'Livre emprunte avec retour sous 7 jours.'
-                                        : (loans.error ??
-                                              'Impossible d\'emprunter ce livre.'),
+                                if (!context.mounted) return;
+                                final subscribedToAlert =
+                                    !success &&
+                                    (loans.activeError ?? '').contains(
+                                      'Vous serez notifié',
+                                    );
+
+                                if (subscribedToAlert) {
+                                  setState(() {
+                                    _alertRegisteredBookIds.add(book.id);
+                                  });
+                                }
+
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      success
+                                      ? 'Livre emprunté, retour prévu sous 7 jours.'
+                                          : subscribedToAlert
+                                      ? 'Alerte enregistrée : vous serez notifié quand ce livre redeviendra disponible.'
+                                          : (loans.error ??
+                                                'Impossible d\'emprunter ce livre.'),
+                                    ),
+                                    backgroundColor: success
+                                        ? const Color(0xFF27AE60)
+                                        : subscribedToAlert
+                                        ? const Color(0xFFE67E22)
+                                        : Colors.red,
                                   ),
-                                  backgroundColor: success
-                                      ? const Color(0xFF27AE60)
-                                      : Colors.red,
-                                ),
-                              );
+                                );
+                              } finally {
+                                if (mounted) {
+                                  setState(() {
+                                    _busyBookIds.remove(book.id);
+                                  });
+                                }
+                              }
                             },
+                            onReviews: () => _openReviewsSheet(book),
                           );
                         },
                       ),
@@ -162,5 +214,94 @@ class _CatalogueScreenState extends State<CatalogueScreen> {
       default:
         return [const Color(0xFFa8edea), const Color(0xFFfed6e3)];
     }
+  }
+
+  void _openReviewsSheet(BookModel book) {
+    final auth = context.read<AuthProvider>();
+    if (!auth.isAuthenticated || auth.currentUser == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Connectez-vous pour laisser un avis.'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    final currentUser = auth.currentUser!;
+
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        return Container(
+          decoration: const BoxDecoration(
+            color: Color(0xFFF7F4EE),
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          height: MediaQuery.of(sheetContext).size.height * 0.92,
+          child: SafeArea(
+            top: false,
+            child: Column(
+              children: [
+                const SizedBox(height: 10),
+                Container(
+                  width: 44,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade400,
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              book.title,
+                              style: const TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF2C3E50),
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              '${book.author} • ${book.genre.isNotEmpty ? book.genre : 'Genre inconnu'}',
+                              style: TextStyle(
+                                color: Colors.grey.shade700,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () => Navigator.of(sheetContext).pop(),
+                        icon: const Icon(Icons.close),
+                      ),
+                    ],
+                  ),
+                ),
+                const Divider(height: 1),
+                Expanded(
+                  child: SingleChildScrollView(
+                    child: ReviewsList(
+                      bookId: book.id,
+                      userId: currentUser.uid,
+                      userName: currentUser.name,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 }

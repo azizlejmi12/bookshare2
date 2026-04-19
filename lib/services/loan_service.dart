@@ -35,4 +35,14 @@ class LoanService {
         .getUserLoanHistory(userId)
         .map((loans) => loans.map(LoanModel.fromMap).toList());
   }
+
+  Future<void> sendDueSoonRemindersForUser(
+    String userId, {
+    int daysBefore = 2,
+  }) {
+    return _firestore.sendDueSoonRemindersForUser(
+      userId,
+      daysBefore: daysBefore,
+    );
+  }
 }

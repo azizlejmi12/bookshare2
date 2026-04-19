@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'dart:async';
 
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../models/user_model.dart';
 import '../services/auth_service.dart';
@@ -29,8 +30,22 @@ class AuthProvider with ChangeNotifier {
     _authStateSubscription = _authService.authStateChanges.listen(
       (User? firebaseUser) async {
         if (firebaseUser != null) {
-          UserModel? user = await _firestoreService.getUser(firebaseUser.uid);
-          if (user == null) {
+          UserModel? user;
+          try {
+            user = await _firestoreService.getUser(firebaseUser.uid);
+            if (user == null) {
+              user = UserModel(
+                uid: firebaseUser.uid,
+                name: firebaseUser.displayName ?? 'Utilisateur',
+                email: firebaseUser.email ?? '',
+                createdAt: DateTime.now(),
+                isAdmin: false,
+              );
+              await _firestoreService.saveUser(user);
+            }
+          } on FirebaseException catch (e) {
+            if (e.code != 'permission-denied') rethrow;
+            // Fallback pour éviter de bloquer l'utilisateur si les rules sont trop strictes.
             user = UserModel(
               uid: firebaseUser.uid,
               name: firebaseUser.displayName ?? 'Utilisateur',
@@ -38,7 +53,6 @@ class AuthProvider with ChangeNotifier {
               createdAt: DateTime.now(),
               isAdmin: false,
             );
-            await _firestoreService.saveUser(user);
           }
           _currentUser = user;
         } else {
@@ -127,13 +141,13 @@ class AuthProvider with ChangeNotifier {
   Future<bool> updateProfileName(String newName) async {
     final user = _currentUser;
     if (user == null) {
-      _setError('Utilisateur non connecte');
+      _setError('Utilisateur non connecté.');
       return false;
     }
 
     final trimmed = newName.trim();
     if (trimmed.isEmpty) {
-      _setError('Le nom ne peut pas etre vide');
+      _setError('Le nom ne peut pas être vide.');
       return false;
     }
 
@@ -182,7 +196,12 @@ class AuthProvider with ChangeNotifier {
   }
 
   void _setError(String message) {
-    _errorMessage = message;
+    if (message.contains('permission-denied')) {
+      _errorMessage =
+          'Accès Firestore refusé. Vérifiez vos règles Firestore.';
+    } else {
+      _errorMessage = message;
+    }
     notifyListeners();
   }
 

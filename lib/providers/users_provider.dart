@@ -98,7 +98,12 @@ class UsersProvider extends ChangeNotifier {
   }
 
   void _setError(String message) {
-    _error = message;
+    if (message.contains('permission-denied')) {
+      _error =
+          'Accès refusé à la liste des utilisateurs. Publiez les règles Firestore mises à jour.';
+    } else {
+      _error = message;
+    }
     notifyListeners();
   }
 

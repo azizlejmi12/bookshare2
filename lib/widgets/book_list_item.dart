@@ -11,6 +11,9 @@ class BookListItem extends StatelessWidget {
   final String? coverUrl;
   final List<Color> gradientColors;
   final VoidCallback? onBorrow;
+  final VoidCallback? onReviews;
+  final bool isActionLoading;
+  final String? actionLabel;
 
   const BookListItem({
     super.key,
@@ -20,6 +23,9 @@ class BookListItem extends StatelessWidget {
     this.coverUrl,
     required this.gradientColors,
     this.onBorrow,
+    this.onReviews,
+    this.isActionLoading = false,
+    this.actionLabel,
   });
 
   @override
@@ -101,21 +107,64 @@ class BookListItem extends StatelessWidget {
                   SizedBox(
                     height: 34,
                     child: ElevatedButton(
-                      onPressed: isAvailable ? onBorrow : null,
+                      onPressed: isActionLoading ? null : onBorrow,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF2C3E50),
+                        backgroundColor: isAvailable
+                            ? const Color(0xFF2C3E50)
+                            : const Color(0xFFE67E22),
                         disabledBackgroundColor: Colors.grey.shade400,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(8),
                         ),
                         padding: const EdgeInsets.symmetric(horizontal: 12),
                       ),
-                      child: const Text(
-                        'Emprunter',
-                        style: TextStyle(fontSize: 12, color: Colors.white),
+                      child: isActionLoading
+                          ? const SizedBox(
+                              width: 14,
+                              height: 14,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : Text(
+                              actionLabel ??
+                                  (isAvailable ? 'Emprunter' : 'Me notifier'),
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: Colors.white,
+                              ),
+                            ),
+                    ),
+                  ),
+                if (onReviews != null) ...[
+                  const SizedBox(height: 6),
+                  SizedBox(
+                    height: 32,
+                    child: OutlinedButton.icon(
+                      onPressed: onReviews,
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: Color(0xFF2C3E50)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: 10),
+                      ),
+                      icon: const Icon(
+                        Icons.star_outline,
+                        size: 16,
+                        color: Color(0xFF2C3E50),
+                      ),
+                      label: const Text(
+                        'Avis',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFF2C3E50),
+                        ),
                       ),
                     ),
                   ),
+                ],
               ],
             ),
           ),

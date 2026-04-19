@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/loans_provider.dart';
+import '../notifications/notifications_screen.dart';
 import '../auth/login_screen.dart';
 import '../admin/admin_screen.dart';
 
@@ -203,7 +204,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
                         content: Text(
-                          'Utilisez l\'onglet Emprunts en bas pour gerer vos livres.',
+                          'Utilisez l\'onglet Emprunts en bas pour gérer vos livres.',
                         ),
                       ),
                     );
@@ -213,9 +214,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   icon: Icons.notifications_outlined,
                   label: 'Notifications',
                   onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Notifications bientot disponibles.'),
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const NotificationsScreen(),
                       ),
                     );
                   },
@@ -231,7 +233,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         return AlertDialog(
                           title: const Text('Aide & Support'),
                           content: const Text(
-                            'Contact: support@bookshare.app\nNous repondons sous 24h.',
+                            'Contact : support@bookshare.app\nNous répondons sous 24 h.',
                           ),
                           actions: [
                             TextButton(
@@ -274,9 +276,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       context: context,
                       builder: (dialogContext) {
                         return AlertDialog(
-                          title: const Text('Confirmer la deconnexion'),
+                          title: const Text('Confirmer la déconnexion'),
                           content: const Text(
-                            'Voulez-vous vraiment vous deconnecter ?',
+                            'Voulez-vous vraiment vous déconnecter ?',
                           ),
                           actions: [
                             TextButton(
@@ -289,7 +291,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               onPressed: () {
                                 Navigator.of(dialogContext).pop(true);
                               },
-                              child: const Text('Deconnexion'),
+                              child: const Text('Déconnexion'),
                             ),
                           ],
                         );
@@ -364,8 +366,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
       SnackBar(
         content: Text(
           success
-              ? 'Profil mis a jour avec succes.'
-              : (auth.errorMessage ?? 'Mise a jour impossible.'),
+            ? 'Profil mis à jour avec succès.'
+            : (auth.errorMessage ?? 'Mise à jour impossible.'),
         ),
         backgroundColor: success ? const Color(0xFF27AE60) : Colors.red,
       ),

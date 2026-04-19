@@ -19,7 +19,9 @@ import '../auth/login_screen.dart';
 import '../../providers/catalogue_provider.dart';
 import '../../providers/messages_provider.dart';
 import '../../providers/users_provider.dart';
+import '../../widgets/notification_card.dart';
 import '../chat/chat_detail_screen.dart';
+import '../notifications/notifications_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -119,7 +121,37 @@ class _HomeContentState extends State<HomeContent> {
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      const Icon(Icons.notifications, color: Colors.white),
+                      Consumer<AuthProvider>(
+                        builder: (context, auth, _) {
+                          final userId = auth.currentUser?.uid;
+
+                          return IconButton(
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const NotificationsScreen(),
+                                ),
+                              );
+                            },
+                            icon: Stack(
+                              clipBehavior: Clip.none,
+                              children: [
+                                const Icon(
+                                  Icons.notifications,
+                                  color: Colors.white,
+                                ),
+                                if (userId != null)
+                                  Positioned(
+                                    right: -2,
+                                    top: -2,
+                                    child: NotificationBadge(userId: userId),
+                                  ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
                     ],
                   ),
                 ),
@@ -408,6 +440,9 @@ class _EmpruntsContentState extends State<EmpruntsContent> {
 
     final activeLoans = loansProvider.activeLoans;
     final historyLoans = loansProvider.historyLoans;
+    final currentTabError = selectedTab == 0
+        ? loansProvider.activeError
+        : loansProvider.historyError;
 
     return SafeArea(
       child: Column(
@@ -461,17 +496,14 @@ class _EmpruntsContentState extends State<EmpruntsContent> {
           Expanded(
             child: loansProvider.isLoading
                 ? const Center(child: CircularProgressIndicator())
-                : loansProvider.error != null
+                : currentTabError != null
                 ? Center(
                     child: Padding(
                       padding: const EdgeInsets.all(24),
                       child: Text(
-                        loansProvider.error!,
+                        currentTabError,
                         textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          color: Colors.red,
-                          fontSize: 14,
-                        ),
+                        style: const TextStyle(color: Colors.red, fontSize: 14),
                       ),
                     ),
                   )
@@ -522,7 +554,7 @@ class _EmpruntsContentState extends State<EmpruntsContent> {
           isUrgent: isUrgent,
           gradientColors: _getGradientForGenre(book?.genre ?? ''),
           secondaryActionLabel: loan.renewalCount > 0
-              ? 'Deja prolonge'
+              ? 'Déjà prolongé'
               : 'Prolonger (+7j)',
           onPrimaryAction: () {
             _showLoanDetailsDialog(loan, book, loansProvider);
@@ -539,8 +571,8 @@ class _EmpruntsContentState extends State<EmpruntsContent> {
                     SnackBar(
                       content: Text(
                         success
-                            ? 'Emprunt prolonge de 7 jours.'
-                            : (loansProvider.error ??
+                            ? 'Emprunt prolongé de 7 jours.'
+                            : (loansProvider.activeError ??
                                   'Prolongation impossible.'),
                       ),
                       backgroundColor: success
@@ -570,7 +602,9 @@ class _EmpruntsContentState extends State<EmpruntsContent> {
             children: [
               Text('Auteur: ${book?.author ?? 'Auteur inconnu'}'),
               const SizedBox(height: 8),
-              Text('Genre: ${book?.genre.isNotEmpty == true ? book!.genre : 'Non renseigne'}'),
+              Text(
+                'Genre: ${book?.genre.isNotEmpty == true ? book!.genre : 'Non renseigné'}',
+              ),
               const SizedBox(height: 8),
               Text('Date d\'emprunt: ${_formatDate(loan.borrowDate)}'),
               const SizedBox(height: 8),
@@ -601,13 +635,13 @@ class _EmpruntsContentState extends State<EmpruntsContent> {
                           onPressed: () {
                             Navigator.of(confirmContext).pop(false);
                           },
-                          child: const Text('Non'),
+                          child: const Text('Annuler'),
                         ),
                         ElevatedButton(
                           onPressed: () {
                             Navigator.of(confirmContext).pop(true);
                           },
-                          child: const Text('Oui'),
+                          child: const Text('Confirmer'),
                         ),
                       ],
                     );
@@ -627,8 +661,8 @@ class _EmpruntsContentState extends State<EmpruntsContent> {
                   SnackBar(
                     content: Text(
                       success
-                          ? 'Livre retourne.'
-                          : (loansProvider.error ?? 'Retour impossible.'),
+                          ? 'Livre retourné.'
+                          : (loansProvider.activeError ?? 'Retour impossible.'),
                     ),
                     backgroundColor: success
                         ? const Color(0xFF27AE60)
@@ -678,8 +712,8 @@ class _EmpruntsContentState extends State<EmpruntsContent> {
               '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}',
           isUrgent: false,
           gradientColors: _getGradientForGenre(book?.genre ?? ''),
-          primaryActionLabel: 'Detail',
-          secondaryActionLabel: 'Termine',
+          primaryActionLabel: 'Détail',
+          secondaryActionLabel: 'Terminé',
           onPrimaryAction: () {},
           onSecondaryAction: null,
         );
@@ -776,7 +810,8 @@ class _MessagesContentState extends State<MessagesContent> {
                   ),
                 ),
                 IconButton(
-                  onPressed: () => _openCreateConversationDialog(currentUser.uid),
+                  onPressed: () =>
+                      _openCreateConversationDialog(currentUser.uid),
                   icon: const Icon(Icons.add_comment_outlined),
                   tooltip: 'Nouvelle conversation',
                 ),
@@ -1114,7 +1149,7 @@ class _MessagesContentState extends State<MessagesContent> {
     if (!mounted) return;
 
     if (conversationId == null || conversationId.isEmpty) {
-      final error = messagesProvider.error ?? 'Creation impossible.';
+      final error = messagesProvider.error ?? 'Création impossible.';
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(error), backgroundColor: Colors.red),
       );
@@ -1139,10 +1174,7 @@ class _MessagesContentState extends State<MessagesContent> {
       lastMessage: '',
       lastMessageAt: null,
       updatedAt: null,
-      unreadCount: {
-        currentUser.uid: 0,
-        result['otherUid']!: 0,
-      },
+      unreadCount: {currentUser.uid: 0, result['otherUid']!: 0},
     );
 
     Navigator.push(
@@ -1288,7 +1320,7 @@ class ProfilContent extends StatelessWidget {
                     showDialog(
                       context: context,
                       builder: (dialogContext) => AlertDialog(
-                        title: const Text('Déconnexion'),
+                        title: const Text('Confirmer la déconnexion'),
                         content: const Text(
                           'Voulez-vous vraiment vous déconnecter ?',
                         ),

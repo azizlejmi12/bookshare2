@@ -1,0 +1,111 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isSelf(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isSignedIn() &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
+    }
+
+    // USERS
+    match /users/{userId} {
+      allow create: if isSelf(userId);
+      // Necessaire pour "Nouvelle conversation" (recherche utilisateur).
+      allow read: if isSignedIn();
+
+      // L'utilisateur peut modifier son profil (sauf isAdmin), admin peut tout modifier.
+      allow update: if isAdmin() || (
+        isSelf(userId) &&
+        request.resource.data.isAdmin == resource.data.isAdmin
+      );
+
+      allow delete: if isAdmin();
+    }
+
+    // BOOKS
+    match /books/{bookId} {
+      allow read: if true;
+      allow create, delete: if isAdmin();
+
+      // L'app met a jour isAvailable lors d'un emprunt/retour cote client.
+      // Sans cette regle, les utilisateurs recoivent permission-denied.
+      allow update: if isAdmin() || (
+        isSignedIn() &&
+        request.resource.data.diff(resource.data).changedKeys().hasOnly(['isAvailable'])
+      );
+    }
+
+    // LOANS
+    match /loans/{loanId} {
+      allow read: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      // Mise à jour: propriétaire ou admin uniquement.
+      allow update: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
+      allow delete: if isAdmin();
+    }
+
+    // CONVERSATIONS
+    match /conversations/{conversationId} {
+      allow create: if isSignedIn() && request.auth.uid in request.resource.data.participants;
+      allow read: if isAdmin() || (isSignedIn() && request.auth.uid in resource.data.participants);
+      allow update, delete: if isAdmin() || (isSignedIn() && request.auth.uid in resource.data.participants);
+
+      // MESSAGES subcollection
+      match /messages/{messageId} {
+        allow read: if isAdmin() || (isSignedIn() &&
+          request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participants);
+
+        allow create: if isAdmin() || (isSignedIn() &&
+          request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participants &&
+          request.resource.data.senderId == request.auth.uid);
+
+        allow update: if isAdmin() || (isSignedIn() &&
+          request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participants);
+
+        allow delete: if isAdmin() || (isSignedIn() &&
+          request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participants);
+      }
+    }
+
+    // NOTIFICATIONS
+    match /notifications/{notificationId} {
+      // Lire ses propres notifications, admin lit tout.
+      allow read: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
+
+      // Créer des notifications si connecté (utilisé par logique client).
+      allow create: if isSignedIn();
+
+      // Modifier/supprimer ses notifications, admin aussi.
+      allow update, delete: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
+    }
+
+    // REVIEWS
+    match /reviews/{reviewId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
+    }
+
+    // BOOK ALERTS (abonnement notification disponibilité)
+    match /book_alerts/{alertId} {
+      // N'importe quel utilisateur peut lire les alertes (contient pas d'infos sensibles)
+      allow read: if isSignedIn();
+
+      // L'utilisateur peut créer sa propre alerte.
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+
+      // Suppression autorisée si connecté (utilisé par logique de retour livre).
+      allow delete: if isSignedIn();
+
+      allow update: if false;
+    }
+  }
+}

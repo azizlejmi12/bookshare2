@@ -7,6 +7,8 @@ import 'providers/catalogue_provider.dart';
 import 'providers/loans_provider.dart';
 import 'providers/messages_provider.dart';
 import 'providers/users_provider.dart';
+import 'providers/notifications_provider.dart';
+import 'providers/reviews_provider.dart';
 import 'views/auth/login_screen.dart';
 
 void main() async {
@@ -21,6 +23,8 @@ void main() async {
         ChangeNotifierProvider(create: (_) => LoansProvider()),
         ChangeNotifierProvider(create: (_) => MessagesProvider()),
         ChangeNotifierProvider(create: (_) => UsersProvider()),
+        ChangeNotifierProvider(create: (_) => NotificationsProvider()),
+        ChangeNotifierProvider(create: (_) => ReviewsProvider()),
       ],
       child: const BookShareApp(),
     ),
