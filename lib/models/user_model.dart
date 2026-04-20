@@ -5,6 +5,7 @@ class UserModel {
   final String name;
   final String email;
   final DateTime createdAt;
+  final String? profileImageUrl;
   final bool isAdmin; // ← NOUVEAU
 
   UserModel({
@@ -12,6 +13,7 @@ class UserModel {
     required this.name,
     required this.email,
     required this.createdAt,
+    this.profileImageUrl,
     this.isAdmin = false, // ← Par défaut, pas admin
   });
 
@@ -22,6 +24,7 @@ class UserModel {
       name: data['name'] ?? '',
       email: data['email'] ?? '',
       createdAt: (data['createdAt'] as Timestamp).toDate(),
+      profileImageUrl: data['profileImageUrl'],
       isAdmin: data['isAdmin'] ?? false, // ← NOUVEAU
     );
   }
@@ -33,6 +36,7 @@ class UserModel {
       name: name,
       email: email,
       createdAt: DateTime.now(),
+      profileImageUrl: null,
       isAdmin: false, // ← Par défaut
     );
   }
@@ -43,6 +47,7 @@ class UserModel {
       'name': name,
       'email': email,
       'createdAt': Timestamp.fromDate(createdAt),
+      'profileImageUrl': profileImageUrl,
       'isAdmin': isAdmin, // ← NOUVEAU
     };
   }
@@ -53,6 +58,8 @@ class UserModel {
     String? name,
     String? email,
     DateTime? createdAt,
+    String? profileImageUrl,
+    bool clearProfileImage = false,
     bool? isAdmin,
   }) {
     return UserModel(
@@ -60,6 +67,9 @@ class UserModel {
       name: name ?? this.name,
       email: email ?? this.email,
       createdAt: createdAt ?? this.createdAt,
+      profileImageUrl: clearProfileImage
+          ? null
+          : (profileImageUrl ?? this.profileImageUrl),
       isAdmin: isAdmin ?? this.isAdmin,
     );
   }

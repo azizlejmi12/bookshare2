@@ -1,8 +1,10 @@
 import 'package:flutter/foundation.dart';
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../models/user_model.dart';
 import '../services/auth_service.dart';
@@ -170,6 +172,86 @@ class AuthProvider with ChangeNotifier {
       _setLoading(false);
       return false;
     }
+  }
+
+  Future<bool> updateProfileImage(XFile image) async {
+    final user = _currentUser;
+    if (user == null) {
+      _setError('Utilisateur non connecté.');
+      return false;
+    }
+
+    try {
+      _setLoading(true);
+      _clearError();
+
+      final profileImageUrl = await _encodeProfileImageAsDataUrl(image);
+
+      await _firestoreService.updateUser(
+        uid: user.uid,
+        name: user.name,
+        email: user.email,
+        profileImageUrl: profileImageUrl,
+        shouldUpdateProfileImage: true,
+      );
+
+      _currentUser = user.copyWith(profileImageUrl: profileImageUrl);
+      _setLoading(false);
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _setError(e.toString());
+      _setLoading(false);
+      return false;
+    }
+  }
+
+  Future<bool> removeProfileImage() async {
+    final user = _currentUser;
+    if (user == null) {
+      _setError('Utilisateur non connecté.');
+      return false;
+    }
+
+    try {
+      _setLoading(true);
+      _clearError();
+
+      await _firestoreService.updateUser(
+        uid: user.uid,
+        name: user.name,
+        email: user.email,
+        profileImageUrl: null,
+        shouldUpdateProfileImage: true,
+      );
+
+      _currentUser = user.copyWith(clearProfileImage: true);
+      _setLoading(false);
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _setError(e.toString());
+      _setLoading(false);
+      return false;
+    }
+  }
+
+  Future<String> _encodeProfileImageAsDataUrl(XFile image) async {
+    final bytes = await image.readAsBytes();
+
+    // Même logique que les couvertures de livres pour respecter la limite Firestore.
+    const maxRawSizeBytes = 450 * 1024;
+    if (bytes.length > maxRawSizeBytes) {
+      throw Exception(
+        'Image trop lourde. Choisissez une image plus legere (max 450 Ko).',
+      );
+    }
+
+    final extension = image.path.contains('.')
+        ? image.path.split('.').last.toLowerCase()
+        : 'jpg';
+
+    return 'data:image/$extension;base64,${base64Encode(bytes)}';
   }
 
   /// Réinitialiser le mot de passe

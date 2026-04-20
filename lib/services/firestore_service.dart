@@ -47,6 +47,7 @@ class FirestoreService {
       'name': user.name,
       'email': user.email,
       'createdAt': Timestamp.fromDate(user.createdAt),
+      'profileImageUrl': user.profileImageUrl,
       'isAdmin': user.isAdmin,
     });
   }
@@ -61,6 +62,7 @@ class FirestoreService {
       name: data['name'] ?? '',
       email: data['email'] ?? '',
       createdAt: (data['createdAt'] as Timestamp).toDate(),
+      profileImageUrl: data['profileImageUrl'],
       isAdmin: data['isAdmin'] ?? false,
     );
   }
@@ -176,11 +178,19 @@ class FirestoreService {
     required String uid,
     required String name,
     required String email,
+    String? profileImageUrl,
+    bool shouldUpdateProfileImage = false,
   }) async {
-    await _db.collection('users').doc(uid).update({
+    final payload = <String, dynamic>{
       'name': name,
       'email': email,
-    });
+    };
+
+    if (shouldUpdateProfileImage) {
+      payload['profileImageUrl'] = profileImageUrl;
+    }
+
+    await _db.collection('users').doc(uid).update(payload);
   }
 
   // Supprimer un utilisateur

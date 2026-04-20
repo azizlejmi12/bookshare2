@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'dart:convert';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
+import '../../models/user_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/loans_provider.dart';
 import '../notifications/notifications_screen.dart';
@@ -16,6 +19,8 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
+  final ImagePicker _picker = ImagePicker();
+
   @override
   void initState() {
     super.initState();
@@ -60,17 +65,36 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   child: Column(
                     children: [
                       // Avatar
-                      Container(
-                        width: 100,
-                        height: 100,
-                        decoration: const BoxDecoration(
-                          color: Color(0xFF2C3E50),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          Icons.person,
-                          size: 50,
-                          color: Colors.white,
+                      GestureDetector(
+                        onTap: auth.isLoading
+                            ? null
+                            : () => _openProfileImageActions(user),
+                        child: Stack(
+                          clipBehavior: Clip.none,
+                          children: [
+                            _buildProfileAvatar(user),
+                            Positioned(
+                              right: -2,
+                              bottom: -2,
+                              child: Container(
+                                width: 32,
+                                height: 32,
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF27AE60),
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: Colors.white,
+                                    width: 2,
+                                  ),
+                                ),
+                                child: const Icon(
+                                  Icons.photo_camera_outlined,
+                                  color: Colors.white,
+                                  size: 16,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                       const SizedBox(height: 16),
@@ -371,6 +395,161 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ),
         backgroundColor: success ? const Color(0xFF27AE60) : Colors.red,
       ),
+    );
+  }
+
+  Future<XFile?> _pickProfileImage() {
+    return _picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 60,
+      maxWidth: 700,
+    );
+  }
+
+  Future<void> _openProfileImageActions(UserModel? user) async {
+    if (!mounted) return;
+
+    final action = await showModalBottomSheet<String>(
+      context: context,
+      builder: (sheetContext) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.edit_outlined),
+                title: const Text('Modifier la photo'),
+                onTap: () => Navigator.of(sheetContext).pop('edit'),
+              ),
+              ListTile(
+                leading: Icon(
+                  Icons.delete_outline,
+                  color: user?.profileImageUrl?.isNotEmpty == true
+                      ? Colors.red
+                      : Colors.grey,
+                ),
+                title: Text(
+                  'Supprimer la photo',
+                  style: TextStyle(
+                    color: user?.profileImageUrl?.isNotEmpty == true
+                        ? Colors.red
+                        : Colors.grey,
+                  ),
+                ),
+                onTap: user?.profileImageUrl?.isNotEmpty == true
+                    ? () => Navigator.of(sheetContext).pop('delete')
+                    : null,
+              ),
+            ],
+          ),
+        );
+      },
+    );
+
+    if (action == 'edit') {
+      if (!mounted) return;
+      await _changeProfileImage();
+      return;
+    }
+
+    if (action == 'delete') {
+      await _removeProfileImage();
+    }
+  }
+
+  Future<void> _changeProfileImage() async {
+    if (!mounted) return;
+    final pickedImage = await _pickProfileImage();
+    if (pickedImage == null) return;
+
+    if (!mounted) return;
+    final auth = context.read<AuthProvider>();
+    final success = await auth.updateProfileImage(pickedImage);
+
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          success
+              ? 'Photo de profil mise à jour.'
+              : (auth.errorMessage ?? 'Mise à jour impossible.'),
+        ),
+        backgroundColor: success ? const Color(0xFF27AE60) : Colors.red,
+      ),
+    );
+  }
+
+  Future<void> _removeProfileImage() async {
+    if (!mounted) return;
+    final auth = context.read<AuthProvider>();
+    final success = await auth.removeProfileImage();
+
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          success
+              ? 'Photo de profil supprimée.'
+              : (auth.errorMessage ?? 'Suppression impossible.'),
+        ),
+        backgroundColor: success ? const Color(0xFF27AE60) : Colors.red,
+      ),
+    );
+  }
+
+  Widget _buildProfileAvatar(UserModel? user) {
+    final profileImageUrl = user?.profileImageUrl;
+    if (profileImageUrl == null || profileImageUrl.isEmpty) {
+      return Container(
+        width: 100,
+        height: 100,
+        decoration: const BoxDecoration(
+          color: Color(0xFF2C3E50),
+          shape: BoxShape.circle,
+        ),
+        child: const Icon(
+          Icons.person,
+          size: 50,
+          color: Colors.white,
+        ),
+      );
+    }
+
+    Widget imageWidget;
+    if (profileImageUrl.startsWith('data:image/')) {
+      final commaIndex = profileImageUrl.indexOf(',');
+      final base64Part =
+          commaIndex >= 0 ? profileImageUrl.substring(commaIndex + 1) : '';
+      imageWidget = Image.memory(
+        base64Decode(base64Part),
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => const Icon(
+          Icons.broken_image,
+          color: Colors.white,
+          size: 36,
+        ),
+      );
+    } else {
+      imageWidget = Image.network(
+        profileImageUrl,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => const Icon(
+          Icons.broken_image,
+          color: Colors.white,
+          size: 36,
+        ),
+      );
+    }
+
+    return Container(
+      width: 100,
+      height: 100,
+      decoration: const BoxDecoration(
+        color: Color(0xFF2C3E50),
+        shape: BoxShape.circle,
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: imageWidget,
     );
   }
 
