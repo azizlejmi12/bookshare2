@@ -18,6 +18,8 @@ class CatalogueScreen extends StatefulWidget {
 class _CatalogueScreenState extends State<CatalogueScreen> {
   final Set<String> _busyBookIds = <String>{};
   final Set<String> _alertRegisteredBookIds = <String>{};
+  bool _isSearchMode = false;
+  String _searchQuery = '';
 
   @override
   void initState() {
@@ -32,6 +34,16 @@ class _CatalogueScreenState extends State<CatalogueScreen> {
   Widget build(BuildContext context) {
     return Consumer<CatalogueProvider>(
       builder: (context, bookProvider, child) {
+        final books = bookProvider.filteredBooks;
+        final displayedBooks = _searchQuery.trim().isEmpty
+            ? books
+            : books.where((book) {
+                final query = _searchQuery.trim().toLowerCase();
+                return book.title.toLowerCase().contains(query) ||
+                    book.author.toLowerCase().contains(query) ||
+                    book.genre.toLowerCase().contains(query);
+              }).toList();
+
         return SafeArea(
           child: Column(
             children: [
@@ -45,16 +57,93 @@ class _CatalogueScreenState extends State<CatalogueScreen> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Icon(Icons.menu, color: Color(0xFF2C3E50)),
-                    const Text(
-                      'Catalogue',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF2C3E50),
+                    PopupMenuButton<String>(
+                      onSelected: (value) {
+                        switch (value) {
+                          case 'refresh':
+                            context.read<CatalogueProvider>().loadBooks();
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Catalogue actualise.'),
+                                duration: Duration(seconds: 1),
+                              ),
+                            );
+                            break;
+                          case 'all':
+                            bookProvider.filterByGenre('Tous');
+                            break;
+                          case 'roman':
+                            bookProvider.filterByGenre('Roman');
+                            break;
+                          case 'sf':
+                            bookProvider.filterByGenre('Science-fiction');
+                            break;
+                        }
+                      },
+                      icon: const Icon(Icons.menu, color: Color(0xFF2C3E50)),
+                      itemBuilder: (context) => const [
+                        PopupMenuItem<String>(
+                          value: 'refresh',
+                          child: Text('Actualiser'),
+                        ),
+                        PopupMenuItem<String>(
+                          value: 'all',
+                          child: Text('Tous les genres'),
+                        ),
+                        PopupMenuItem<String>(
+                          value: 'roman',
+                          child: Text('Roman'),
+                        ),
+                        PopupMenuItem<String>(
+                          value: 'sf',
+                          child: Text('Science-fiction'),
+                        ),
+                      ],
+                    ),
+                    Expanded(
+                      child: AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 180),
+                        child: _isSearchMode
+                            ? TextField(
+                                key: const ValueKey('catalogue-search'),
+                                autofocus: true,
+                                onChanged: (value) {
+                                  setState(() {
+                                    _searchQuery = value;
+                                  });
+                                },
+                                decoration: const InputDecoration(
+                                  hintText: 'Rechercher un livre...',
+                                  border: InputBorder.none,
+                                  isDense: true,
+                                ),
+                              )
+                            : const Text(
+                                'Catalogue',
+                                key: ValueKey('catalogue-title'),
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF2C3E50),
+                                ),
+                              ),
                       ),
                     ),
-                    const Icon(Icons.search, color: Color(0xFF2C3E50)),
+                    IconButton(
+                      onPressed: () {
+                        setState(() {
+                          _isSearchMode = !_isSearchMode;
+                          if (!_isSearchMode) {
+                            _searchQuery = '';
+                          }
+                        });
+                      },
+                      icon: Icon(
+                        _isSearchMode ? Icons.close : Icons.search,
+                        color: const Color(0xFF2C3E50),
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -99,11 +188,17 @@ class _CatalogueScreenState extends State<CatalogueScreen> {
                           'Erreur lors du chargement du catalogue : ${bookProvider.error}',
                         ),
                       )
+                    : displayedBooks.isEmpty
+                    ? const Center(
+                        child: Text(
+                          'Aucun livre ne correspond a la recherche.',
+                        ),
+                      )
                     : ListView.builder(
                         padding: const EdgeInsets.all(20),
-                        itemCount: bookProvider.filteredBooks.length,
+                        itemCount: displayedBooks.length,
                         itemBuilder: (context, index) {
-                          final book = bookProvider.filteredBooks[index];
+                          final book = displayedBooks[index];
                           final isBusy = _busyBookIds.contains(book.id);
                           final hasRegisteredAlert =
                               _alertRegisteredBookIds.contains(book.id) &&
@@ -117,81 +212,85 @@ class _CatalogueScreenState extends State<CatalogueScreen> {
                             gradientColors: _getGradientForGenre(book.genre),
                             isActionLoading: isBusy,
                             actionLabel: hasRegisteredAlert
-                              ? 'Alerte créée'
+                                ? 'Alerte créée'
                                 : null,
                             onBorrow: (isBusy || hasRegisteredAlert)
                                 ? null
                                 : () async {
-                              setState(() {
-                                _busyBookIds.add(book.id);
-                              });
+                                    setState(() {
+                                      _busyBookIds.add(book.id);
+                                    });
 
-                              final auth = context.read<AuthProvider>();
-                              final loans = context.read<LoansProvider>();
+                                    final auth = context.read<AuthProvider>();
+                                    final loans = context.read<LoansProvider>();
 
-                              if (!auth.isAuthenticated ||
-                                  auth.currentUser == null) {
-                                if (context.mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text(
-                                        'Connectez-vous pour emprunter un livre.',
-                                      ),
-                                      backgroundColor: Colors.orange,
-                                    ),
-                                  );
-                                }
-                                setState(() {
-                                  _busyBookIds.remove(book.id);
-                                });
-                                return;
-                              }
+                                    if (!auth.isAuthenticated ||
+                                        auth.currentUser == null) {
+                                      if (context.mounted) {
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(
+                                          const SnackBar(
+                                            content: Text(
+                                              'Connectez-vous pour emprunter un livre.',
+                                            ),
+                                            backgroundColor: Colors.orange,
+                                          ),
+                                        );
+                                      }
+                                      setState(() {
+                                        _busyBookIds.remove(book.id);
+                                      });
+                                      return;
+                                    }
 
-                              try {
-                                final success = await loans.borrowBook(
-                                  userId: auth.currentUser!.uid,
-                                  bookId: book.id,
-                                  durationDays: 7,
-                                );
+                                    try {
+                                      final success = await loans.borrowBook(
+                                        userId: auth.currentUser!.uid,
+                                        bookId: book.id,
+                                        durationDays: 7,
+                                      );
 
-                                if (!context.mounted) return;
-                                final subscribedToAlert =
-                                    !success &&
-                                    (loans.activeError ?? '').contains(
-                                      'Vous serez notifié',
-                                    );
+                                      if (!context.mounted) return;
+                                      final subscribedToAlert =
+                                          !success &&
+                                          (loans.activeError ?? '').contains(
+                                            'Vous serez notifié',
+                                          );
 
-                                if (subscribedToAlert) {
-                                  setState(() {
-                                    _alertRegisteredBookIds.add(book.id);
-                                  });
-                                }
+                                      if (subscribedToAlert) {
+                                        setState(() {
+                                          _alertRegisteredBookIds.add(book.id);
+                                        });
+                                      }
 
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text(
-                                      success
-                                      ? 'Livre emprunté, retour prévu sous 7 jours.'
-                                          : subscribedToAlert
-                                      ? 'Alerte enregistrée : vous serez notifié quand ce livre redeviendra disponible.'
-                                          : (loans.error ??
-                                                'Impossible d\'emprunter ce livre.'),
-                                    ),
-                                    backgroundColor: success
-                                        ? const Color(0xFF27AE60)
-                                        : subscribedToAlert
-                                        ? const Color(0xFFE67E22)
-                                        : Colors.red,
-                                  ),
-                                );
-                              } finally {
-                                if (mounted) {
-                                  setState(() {
-                                    _busyBookIds.remove(book.id);
-                                  });
-                                }
-                              }
-                            },
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        SnackBar(
+                                          content: Text(
+                                            success
+                                                ? 'Livre emprunté, retour prévu sous 7 jours.'
+                                                : subscribedToAlert
+                                                ? 'Alerte enregistrée : vous serez notifié quand ce livre redeviendra disponible.'
+                                                : (loans.error ??
+                                                      'Impossible d\'emprunter ce livre.'),
+                                          ),
+                                          backgroundColor: success
+                                              ? const Color(0xFF27AE60)
+                                              : subscribedToAlert
+                                              ? const Color(0xFFE67E22)
+                                              : Colors.red,
+                                        ),
+                                      );
+                                    } finally {
+                                      if (mounted) {
+                                        setState(() {
+                                          _busyBookIds.remove(book.id);
+                                        });
+                                      }
+                                    }
+                                  },
                             onReviews: () => _openReviewsSheet(book),
                           );
                         },
@@ -273,9 +372,7 @@ class _CatalogueScreenState extends State<CatalogueScreen> {
                             const SizedBox(height: 4),
                             Text(
                               '${book.author} • ${book.genre.isNotEmpty ? book.genre : 'Genre inconnu'}',
-                              style: TextStyle(
-                                color: Colors.grey.shade700,
-                              ),
+                              style: TextStyle(color: Colors.grey.shade700),
                             ),
                           ],
                         ),
