@@ -275,19 +275,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                 // Section Admin (affiche toujours pour debug)
                 // Dans le Column des enfants, après "Aide & Support" :
-                if (user?.isAdmin == true) ...[
-                  _buildMenuItem(
-                    icon: Icons.admin_panel_settings,
-                    label: 'Administration',
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const AdminScreen()),
-                      );
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                ],
+                  if (user?.isAdmin == true) ...[
+                    _buildMenuItem(
+                      icon: Icons.admin_panel_settings,
+                      label: 'Administration',
+                      onTap: () {
+                        Navigator.pushNamed(context, '/admin');
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                  ],
                 const SizedBox(height: 18),
 
                 // Déconnexion

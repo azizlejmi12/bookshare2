@@ -46,6 +46,13 @@ class AdminScreen extends StatelessWidget {
           ),
           actions: [
             IconButton(
+              icon: const Icon(Icons.dashboard),
+              tooltip: 'Dashboard',
+              onPressed: () {
+                Navigator.pushNamed(context, '/admin');
+              },
+            ),
+            IconButton(
               icon: const Icon(Icons.logout),
               onPressed: () async {
                 await auth.signOut();

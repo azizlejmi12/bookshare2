@@ -10,6 +10,7 @@ import 'providers/users_provider.dart';
 import 'providers/notifications_provider.dart';
 import 'providers/reviews_provider.dart';
 import 'views/auth/login_screen.dart';
+import 'views/admin/dashboard_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -44,6 +45,9 @@ class BookShareApp extends StatelessWidget {
         scaffoldBackgroundColor: const Color(0xFFF5F5F0),
       ),
       home: const LoginScreen(),
+      routes: {
+        '/admin': (ctx) => const DashboardScreen(),
+      },
     );
   }
 }
