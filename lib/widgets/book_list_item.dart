@@ -12,6 +12,7 @@ class BookListItem extends StatelessWidget {
   final List<Color> gradientColors;
   final VoidCallback? onBorrow;
   final VoidCallback? onReviews;
+  final VoidCallback? onTap;
   final bool isActionLoading;
   final String? actionLabel;
 
@@ -24,6 +25,7 @@ class BookListItem extends StatelessWidget {
     required this.gradientColors,
     this.onBorrow,
     this.onReviews,
+    this.onTap,
     this.isActionLoading = false,
     this.actionLabel,
   });
@@ -32,7 +34,6 @@ class BookListItem extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
@@ -44,131 +45,141 @@ class BookListItem extends StatelessWidget {
           ),
         ],
       ),
-      child: Row(
-        children: [
-          // Image petite
-          ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: SizedBox(
-              width: 80,
-              height: 110,
-              child: (coverUrl != null && coverUrl!.isNotEmpty)
-                  ? _buildCoverImage(coverUrl!)
-                  : _buildGradientPlaceholder(),
-            ),
-          ),
-
-          const SizedBox(width: 16),
-
-          // Infos
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Row(
               children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF2C3E50),
+                // Image petite
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: SizedBox(
+                    width: 80,
+                    height: 110,
+                    child: (coverUrl != null && coverUrl!.isNotEmpty)
+                        ? _buildCoverImage(coverUrl!)
+                        : _buildGradientPlaceholder(),
                   ),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  author,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: Color(0xFF7F8C8D),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: isAvailable
-                        ? const Color(0xFF27AE60)
-                        : const Color(0xFFE67E22),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    isAvailable ? 'Disponible' : 'Prêté',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 10),
-                if (onBorrow != null)
-                  SizedBox(
-                    height: 34,
-                    child: ElevatedButton(
-                      onPressed: isActionLoading ? null : onBorrow,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: isAvailable
-                            ? const Color(0xFF2C3E50)
-                            : const Color(0xFFE67E22),
-                        disabledBackgroundColor: Colors.grey.shade400,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                      ),
-                      child: isActionLoading
-                          ? const SizedBox(
-                              width: 14,
-                              height: 14,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white,
-                              ),
-                            )
-                          : Text(
-                              actionLabel ??
-                                  (isAvailable ? 'Emprunter' : 'Me notifier'),
-                              style: const TextStyle(
-                                fontSize: 12,
-                                color: Colors.white,
-                              ),
-                            ),
-                    ),
-                  ),
-                if (onReviews != null) ...[
-                  const SizedBox(height: 6),
-                  SizedBox(
-                    height: 32,
-                    child: OutlinedButton.icon(
-                      onPressed: onReviews,
-                      style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: Color(0xFF2C3E50)),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        padding: const EdgeInsets.symmetric(horizontal: 10),
-                      ),
-                      icon: const Icon(
-                        Icons.star_outline,
-                        size: 16,
-                        color: Color(0xFF2C3E50),
-                      ),
-                      label: const Text(
-                        'Avis',
-                        style: TextStyle(
-                          fontSize: 12,
+
+                const SizedBox(width: 16),
+
+                // Infos
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
                           color: Color(0xFF2C3E50),
                         ),
                       ),
-                    ),
+                      const SizedBox(height: 4),
+                      Text(
+                        author,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          color: Color(0xFF7F8C8D),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: isAvailable
+                              ? const Color(0xFF27AE60)
+                              : const Color(0xFFE67E22),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          isAvailable ? 'Disponible' : 'Prêté',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      if (onBorrow != null)
+                        SizedBox(
+                          height: 34,
+                          child: ElevatedButton(
+                            onPressed: isActionLoading ? null : onBorrow,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: isAvailable
+                                  ? const Color(0xFF2C3E50)
+                                  : const Color(0xFFE67E22),
+                              disabledBackgroundColor: Colors.grey.shade400,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              padding: const EdgeInsets.symmetric(horizontal: 12),
+                            ),
+                            child: isActionLoading
+                                ? const SizedBox(
+                                    width: 14,
+                                    height: 14,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                : Text(
+                                    actionLabel ??
+                                        (isAvailable ? 'Emprunter' : 'Me notifier'),
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                          ),
+                        ),
+                      if (onReviews != null) ...[
+                        const SizedBox(height: 6),
+                        SizedBox(
+                          height: 32,
+                          child: OutlinedButton.icon(
+                            onPressed: onReviews,
+                            style: OutlinedButton.styleFrom(
+                              side: const BorderSide(color: Color(0xFF2C3E50)),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              padding: const EdgeInsets.symmetric(horizontal: 10),
+                            ),
+                            icon: const Icon(
+                              Icons.star_outline,
+                              size: 16,
+                              color: Color(0xFF2C3E50),
+                            ),
+                            label: const Text(
+                              'Avis',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Color(0xFF2C3E50),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
-                ],
+                ),
               ],
             ),
           ),
-        ],
+        ),
       ),
     );
   }

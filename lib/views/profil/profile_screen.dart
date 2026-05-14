@@ -7,7 +7,6 @@ import '../../providers/auth_provider.dart';
 import '../../providers/loans_provider.dart';
 import '../notifications/notifications_screen.dart';
 import '../auth/login_screen.dart';
-import '../admin/admin_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   final VoidCallback? onOpenLoansTab;

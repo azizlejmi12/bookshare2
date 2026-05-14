@@ -22,6 +22,8 @@ import '../../providers/users_provider.dart';
 import '../../widgets/notification_card.dart';
 import '../chat/chat_detail_screen.dart';
 import '../notifications/notifications_screen.dart';
+import '../catalogue/book_detail_screen.dart';
+import '../events/events_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -189,6 +191,55 @@ class _HomeContentState extends State<HomeContent> {
                   ),
                 ),
 
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF5F5F0),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          '📅 Événements',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF2C3E50),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        const Text(
+                          'Ateliers, lectures et rencontres pour les membres.',
+                          style: TextStyle(
+                            color: Color(0xFF7F8C8D),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        ElevatedButton.icon(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const EventsScreen(),
+                              ),
+                            );
+                          },
+                          icon: const Icon(Icons.event),
+                          label: const Text('Voir les événements'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF2C3E50),
+                            foregroundColor: Colors.white,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
                 // Section RECOMMANDÉS (données Firestore)
                 const Padding(
                   padding: EdgeInsets.fromLTRB(20, 24, 20, 16),
@@ -231,6 +282,14 @@ class _HomeContentState extends State<HomeContent> {
                                 gradientColors: _getGradientForGenre(
                                   book.genre,
                                 ),
+                                onTap: () {
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute<void>(
+                                      builder: (_) =>
+                                          BookDetailScreen(book: book),
+                                    ),
+                                  );
+                                },
                               ),
                             );
                           }).toList(),
@@ -274,6 +333,14 @@ class _HomeContentState extends State<HomeContent> {
                               isAvailable: book.isAvailable,
                               coverUrl: book.coverUrl,
                               gradientColors: _getGradientForGenre(book.genre),
+                              onTap: () {
+                                Navigator.of(context).push(
+                                  MaterialPageRoute<void>(
+                                    builder: (_) =>
+                                        BookDetailScreen(book: book),
+                                  ),
+                                );
+                              },
                             );
                           }).toList(),
                         ),

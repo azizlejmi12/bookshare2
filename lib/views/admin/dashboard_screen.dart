@@ -1,21 +1,29 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../../providers/users_provider.dart';
 import '../../providers/catalogue_provider.dart';
-import '../../providers/loans_provider.dart';
 import '../../providers/auth_provider.dart';
 import 'admin_screen.dart';
 import '../../widgets/admin/stats_card.dart';
 
 class DashboardScreen extends StatefulWidget {
-  const DashboardScreen({Key? key}) : super(key: key);
+  const DashboardScreen({super.key});
 
   @override
   State<DashboardScreen> createState() => _DashboardScreenState();
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
+  Stream<int> _activeLoansCountStream() {
+    return FirebaseFirestore.instance
+        .collection('loans')
+        .where('status', whereIn: ['active', 'extended'])
+        .snapshots()
+        .map((snapshot) => snapshot.docs.length);
+  }
+
   @override
   void initState() {
     super.initState();
@@ -50,11 +58,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     final usersProvider = Provider.of<UsersProvider>(context);
     final catalogueProvider = Provider.of<CatalogueProvider>(context);
-    final loansProvider = Provider.of<LoansProvider>(context);
 
     final totalUsers = usersProvider.users.length;
     final totalBooks = catalogueProvider.books.length;
-    final totalLoans = loansProvider.activeLoans.length;
 
     return Scaffold(
       appBar: AppBar(
@@ -71,37 +77,60 @@ class _DashboardScreenState extends State<DashboardScreen> {
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 12),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: StatsCard(
-                    title: 'Utilisateurs',
-                    value: totalUsers.toString(),
-                    color: Colors.blueAccent,
-                    icon: Icons.person,
+            LayoutBuilder(builder: (context, constraints) {
+              final maxWidth = constraints.maxWidth;
+              int columns = 3;
+              if (maxWidth < 400) {
+                columns = 1;
+              } else if (maxWidth < 700) {
+                columns = 2;
+              }
+
+              final spacing = 12.0;
+              final totalSpacing = spacing * (columns - 1);
+              final cardWidth = (maxWidth - totalSpacing) / columns;
+
+              return Wrap(
+                spacing: spacing,
+                runSpacing: spacing,
+                children: [
+                  SizedBox(
+                    width: cardWidth,
+                    child: StatsCard(
+                      title: 'Utilisateurs',
+                      value: totalUsers.toString(),
+                      color: Colors.blueAccent,
+                      icon: Icons.person,
+                    ),
                   ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: StatsCard(
-                    title: 'Livres',
-                    value: totalBooks.toString(),
-                    color: Colors.green,
-                    icon: Icons.book,
+                  SizedBox(
+                    width: cardWidth,
+                    child: StatsCard(
+                      title: 'Livres',
+                      value: totalBooks.toString(),
+                      color: Colors.green,
+                      icon: Icons.book,
+                    ),
                   ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: StatsCard(
-                    title: 'Emprunts actifs',
-                    value: totalLoans.toString(),
-                    color: Colors.orange,
-                    icon: Icons.book_online,
+                  SizedBox(
+                    width: cardWidth,
+                    child: StreamBuilder<int>(
+                      stream: _activeLoansCountStream(),
+                      initialData: 0,
+                      builder: (context, snapshot) {
+                        final count = snapshot.data ?? 0;
+                        return StatsCard(
+                          title: 'Emprunts actifs',
+                          value: count.toString(),
+                          color: Colors.orange,
+                          icon: Icons.book_online,
+                        );
+                      },
+                    ),
                   ),
-                ),
-              ],
-            ),
+                ],
+              );
+            }),
             const SizedBox(height: 24),
             const Text(
               'Actions rapides',

@@ -126,12 +126,14 @@ class FirestoreService {
     required String title,
     required String author,
     required String genre,
+    String? summary,
     String? coverUrl,
   }) async {
     final docRef = await _db.collection('books').add({
       'title': title,
       'author': author,
       'genre': genre,
+      'summary': summary,
       'isAvailable': true,
       'coverUrl': coverUrl,
       'createdAt': FieldValue.serverTimestamp(),
@@ -153,12 +155,14 @@ class FirestoreService {
     required String title,
     required String author,
     required String genre,
+    String? summary,
     String? coverUrl,
   }) async {
     final payload = <String, dynamic>{
       'title': title,
       'author': author,
       'genre': genre,
+      'summary': summary,
     };
 
     if (coverUrl != null) {

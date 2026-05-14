@@ -57,7 +57,7 @@ class NotificationCard extends StatelessWidget {
           leading: Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: _getColorForType().withOpacity(0.2),
+              color: _getColorForType().withValues(alpha: 0.2),
               shape: BoxShape.circle,
             ),
             child: Icon(
@@ -83,17 +83,17 @@ class NotificationCard extends StatelessWidget {
             itemBuilder: (context) => [
               // Marquer comme lu/non lu
               PopupMenuItem(
-                child: Text(notification.isRead ? 'Marquer comme non lu' : 'Marquer comme lu'),
                 onTap: () {
                   context
                       .read<NotificationsProvider>()
                       .markAsRead(notification.id);
                 },
+                child: Text(notification.isRead ? 'Marquer comme non lu' : 'Marquer comme lu'),
               ),
               // Supprimer
               PopupMenuItem(
-                child: const Text('Supprimer'),
                 onTap: onDismiss,
+                child: const Text('Supprimer'),
               ),
             ],
           ),

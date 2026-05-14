@@ -18,12 +18,14 @@ class BookService {
     required String title,
     required String author,
     required String genre,
+    String? summary,
     XFile? coverImage,
   }) async {
     final bookId = await _firestore.addBook(
       title: title,
       author: author,
       genre: genre,
+      summary: summary,
     );
 
     if (coverImage == null) return;
@@ -34,6 +36,7 @@ class BookService {
       title: title,
       author: author,
       genre: genre,
+      summary: summary,
       coverUrl: coverUrl,
     );
   }
@@ -43,6 +46,7 @@ class BookService {
     required String title,
     required String author,
     required String genre,
+    String? summary,
     XFile? coverImage,
   }) async {
     String? coverUrl;
@@ -55,6 +59,7 @@ class BookService {
       title: title,
       author: author,
       genre: genre,
+      summary: summary,
       coverUrl: coverUrl,
     );
   }

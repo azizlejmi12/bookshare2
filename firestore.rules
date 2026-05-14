@@ -107,5 +107,17 @@ service cloud.firestore {
 
       allow update: if false;
     }
+
+    // EVENTS
+    match /events/{eventId} {
+      allow read: if isSignedIn();
+      allow create, delete: if isAdmin();
+      allow update: if isAdmin() || (
+        isSignedIn() &&
+        request.resource.data.diff(resource.data).changedKeys().hasOnly(['registeredCount', 'participants']) &&
+        request.resource.data.registeredCount == request.resource.data.participants.size() &&
+        request.resource.data.registeredCount <= request.resource.data.maxParticipants
+      );
+    }
   }
 }

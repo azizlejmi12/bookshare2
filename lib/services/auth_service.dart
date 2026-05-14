@@ -139,9 +139,15 @@ class AuthService {
   /// Réinitialiser le mot de passe
   Future<void> resetPassword(String email) async {
     try {
+      debugPrint('🔥 [AuthService] Envoi email de réinitialisation à: $email');
       await _auth.sendPasswordResetEmail(email: email);
+      debugPrint('✅ [AuthService] Email de réinitialisation envoyé avec succès à: $email');
     } on FirebaseAuthException catch (e) {
+      debugPrint('❌ [AuthService] FirebaseAuthException lors resetPassword: code=${e.code}, message=${e.message}');
       throw _handleAuthException(e);
+    } catch (e) {
+      debugPrint('❌ [AuthService] Erreur générale lors resetPassword: $e');
+      rethrow;
     }
   }
 

@@ -260,12 +260,16 @@ class AuthProvider with ChangeNotifier {
       _setLoading(true);
       _clearError();
 
+      debugPrint('📝 [AuthProvider] Début resetPassword pour: $email');
       await _authService.resetPassword(email);
+      debugPrint('✅ [AuthProvider] resetPassword réussi pour: $email');
 
       _setLoading(false);
       return true;
     } catch (e) {
-      _setError(e.toString());
+      final errorMsg = e.toString();
+      debugPrint('❌ [AuthProvider] Erreur resetPassword: $errorMsg');
+      _setError(errorMsg);
       _setLoading(false);
       return false;
     }

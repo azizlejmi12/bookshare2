@@ -6,9 +6,11 @@ import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
 import '../../models/book_model.dart';
+import '../../models/event_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/catalogue_provider.dart';
 import '../../providers/users_provider.dart';
+import '../../providers/events_provider.dart';
 import '../../models/user_model.dart';
 import '../auth/login_screen.dart';
 
@@ -33,7 +35,7 @@ class AdminScreen extends StatelessWidget {
     }
 
     return DefaultTabController(
-      length: 2,
+      length: 3,
       child: Scaffold(
         appBar: AppBar(
           backgroundColor: const Color(0xFF2C3E50),
@@ -42,6 +44,7 @@ class AdminScreen extends StatelessWidget {
             tabs: [
               Tab(icon: Icon(Icons.people), text: 'Utilisateurs'),
               Tab(icon: Icon(Icons.book), text: 'Livres'),
+              Tab(icon: Icon(Icons.event), text: 'Événements'),
             ],
           ),
           actions: [
@@ -67,7 +70,7 @@ class AdminScreen extends StatelessWidget {
             ),
           ],
         ),
-        body: const TabBarView(children: [UsersTab(), BooksTab()]),
+        body: const TabBarView(children: [UsersTab(), BooksTab(), EventsTab()]),
       ),
     );
   }
@@ -376,6 +379,7 @@ class _BooksTabState extends State<BooksTab> {
     final titleCtrl = TextEditingController(text: book.title);
     final authorCtrl = TextEditingController(text: book.author);
     final genreCtrl = TextEditingController(text: book.genre);
+    final summaryCtrl = TextEditingController(text: book.summary ?? '');
     XFile? selectedCover;
 
     showDialog(
@@ -400,6 +404,16 @@ class _BooksTabState extends State<BooksTab> {
                 TextField(
                   controller: genreCtrl,
                   decoration: const InputDecoration(labelText: 'Genre'),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: summaryCtrl,
+                  minLines: 2,
+                  maxLines: 4,
+                  decoration: const InputDecoration(
+                    labelText: 'Petit resume',
+                    hintText: 'Resume court du livre',
+                  ),
                 ),
                 const SizedBox(height: 14),
                 Align(
@@ -474,6 +488,9 @@ class _BooksTabState extends State<BooksTab> {
                     title: titleCtrl.text.trim(),
                     author: authorCtrl.text.trim(),
                     genre: genreCtrl.text.trim(),
+                    summary: summaryCtrl.text.trim().isEmpty
+                        ? null
+                        : summaryCtrl.text.trim(),
                     coverImage: selectedCover,
                   );
 
@@ -893,5 +910,265 @@ class _BooksTabState extends State<BooksTab> {
     } catch (_) {
       return null;
     }
+  }
+}
+
+class EventsTab extends StatefulWidget {
+  const EventsTab({super.key});
+
+  @override
+  State<EventsTab> createState() => _EventsTabState();
+}
+
+class _EventsTabState extends State<EventsTab> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<EventsProvider>();
+    });
+  }
+
+  String _formatDate(DateTime date) {
+    return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
+  }
+
+  Future<void> _showEventDialog({EventModel? event}) async {
+    final titleController = TextEditingController(text: event?.title ?? '');
+    final descriptionController = TextEditingController(text: event?.description ?? '');
+    final maxParticipantsController = TextEditingController(
+      text: event?.maxParticipants.toString() ?? '10',
+    );
+    DateTime selectedDate = event?.eventDate ?? DateTime.now().add(const Duration(days: 1));
+
+    await showDialog(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: Text(event == null ? 'Ajouter un événement' : 'Modifier l\'événement'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: titleController,
+                  decoration: const InputDecoration(labelText: 'Titre'),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: descriptionController,
+                  minLines: 2,
+                  maxLines: 4,
+                  decoration: const InputDecoration(labelText: 'Description'),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: maxParticipantsController,
+                  decoration: const InputDecoration(labelText: 'Places max'),
+                  keyboardType: TextInputType.number,
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text('Date: ${_formatDate(selectedDate)}'),
+                    ),
+                    TextButton(
+                      onPressed: () async {
+                        final picked = await showDatePicker(
+                          context: context,
+                          firstDate: DateTime.now(),
+                          lastDate: DateTime.now().add(const Duration(days: 365)),
+                          initialDate: selectedDate,
+                        );
+                        if (picked != null) {
+                          setDialogState(() {
+                            selectedDate = picked;
+                          });
+                        }
+                      },
+                      child: const Text('Choisir'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Annuler'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                final title = titleController.text.trim();
+                final description = descriptionController.text.trim();
+                final maxParticipants = int.tryParse(maxParticipantsController.text.trim()) ?? 0;
+
+                if (title.isEmpty || description.isEmpty || maxParticipants <= 0) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Remplissez tous les champs correctement.')),
+                  );
+                  return;
+                }
+
+                final eventsProvider = context.read<EventsProvider>();
+                if (event == null) {
+                  eventsProvider.addEvent(
+                    title: title,
+                    description: description,
+                    eventDate: selectedDate,
+                    maxParticipants: maxParticipants,
+                  );
+                } else {
+                  eventsProvider.updateEvent(
+                    eventId: event.id,
+                    title: title,
+                    description: description,
+                    eventDate: selectedDate,
+                    maxParticipants: maxParticipants,
+                  );
+                }
+
+                Navigator.pop(dialogContext);
+              },
+              child: const Text('Enregistrer'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showParticipantsDialog(EventModel event) {
+    final participantController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: Text('Participants - ${event.title}'),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('Places: ${event.registeredCount}/${event.maxParticipants}'),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: participantController,
+                  decoration: const InputDecoration(labelText: 'Ajouter un participant'),
+                ),
+                const SizedBox(height: 8),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    onPressed: () async {
+                      final name = participantController.text.trim();
+                      if (name.isEmpty) return;
+                      final message = await context.read<EventsProvider>().addParticipant(event.id, name);
+                      if (message != null && context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+                        return;
+                      }
+                      participantController.clear();
+                      setDialogState(() {});
+                    },
+                    child: const Text('Ajouter'),
+                  ),
+                ),
+                const Divider(),
+                ...event.participants.map(
+                  (participant) => ListTile(
+                    dense: true,
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(participant),
+                    trailing: IconButton(
+                      icon: const Icon(Icons.remove_circle_outline, color: Colors.red),
+                      onPressed: () async {
+                        final message = await context.read<EventsProvider>().removeParticipant(event.id, participant);
+                        if (message != null && context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+                          return;
+                        }
+                        if (!mounted) return;
+                        final eventsProvider = this.context.read<EventsProvider>();
+                        final refreshedEvent = eventsProvider.events.where((e) => e.id == event.id).firstOrNull;
+                        Navigator.of(this.context).pop();
+                        if (refreshedEvent != null) {
+                          WidgetsBinding.instance.addPostFrameCallback((_) {
+                            if (!mounted) return;
+                            _showParticipantsDialog(refreshedEvent);
+                          });
+                        }
+                      },
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Fermer'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<EventsProvider>(
+      builder: (context, eventsProvider, child) {
+        final events = eventsProvider.events;
+
+        return Scaffold(
+          floatingActionButton: FloatingActionButton(
+            onPressed: () => _showEventDialog(),
+            backgroundColor: const Color(0xFF2C3E50),
+            child: const Icon(Icons.add),
+          ),
+          body: ListView.builder(
+            itemCount: events.length,
+            itemBuilder: (context, index) {
+              final event = events[index];
+
+              return Card(
+                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: ListTile(
+                  leading: const CircleAvatar(
+                    backgroundColor: Color(0xFF2C3E50),
+                    child: Icon(Icons.event, color: Colors.white),
+                  ),
+                  title: Text(event.title),
+                  subtitle: Text(
+                    '${_formatDate(event.eventDate)} • ${event.registeredCount}/${event.maxParticipants} participants',
+                  ),
+                  trailing: PopupMenuButton<String>(
+                    onSelected: (value) {
+                      if (value == 'edit') {
+                        _showEventDialog(event: event);
+                      } else if (value == 'participants') {
+                        _showParticipantsDialog(event);
+                      } else if (value == 'delete') {
+                        eventsProvider.deleteEvent(event.id);
+                      }
+                    },
+                    itemBuilder: (context) => const [
+                      PopupMenuItem(value: 'edit', child: Text('Modifier')),
+                      PopupMenuItem(value: 'participants', child: Text('Participants')),
+                      PopupMenuItem(value: 'delete', child: Text('Supprimer')),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        );
+      },
+    );
   }
 }

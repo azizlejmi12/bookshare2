@@ -147,7 +147,37 @@ final loansProvider = ref.read(loansProvider);
 await loansProvider.borrowBook(bookId, userId);
 ```
 
-## 🔧 Commandes Utiles
+## � Configuration Firebase & Fichiers Sensibles
+
+⚠️ **IMPORTANT**: Les fichiers de configuration Firebase contiennent des clés sensibles et ne doivent **jamais** être committés publiquement.
+
+### Configuration Android
+
+1. Téléchargez `google-services.json` depuis Firebase Console
+2. Placez-le dans `android/app/`
+3. **NE LE COMMITTEZ PAS** - Il est protégé par `.gitignore`
+
+### Configuration iOS
+
+1. Téléchargez `GoogleService-Info.plist` depuis Firebase Console
+2. Placez-le dans `ios/Runner/`
+3. Ouvrez `ios/Runner.xcodeproj` et ajoutez le fichier
+
+### Pour les Contributeurs
+
+```bash
+# Si vous clonez ce repo:
+1. git clone https://github.com/votre-username/bookshare.git
+2. cd bookshare
+3. flutter pub get
+4. Téléchargez google-services.json depuis Firebase Console
+5. Placez-le dans android/app/
+6. flutter run
+```
+
+Les fichiers `google-services.json` et `GoogleService-Info.plist` sont ignorés par Git pour des raisons de sécurité.
+
+## �🔧 Commandes Utiles
 
 ```bash
 # Formater le code

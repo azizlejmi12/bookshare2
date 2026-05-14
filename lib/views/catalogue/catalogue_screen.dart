@@ -7,6 +7,7 @@ import '../../providers/loans_provider.dart';
 import '../../widgets/book_list_item.dart';
 import '../../widgets/category_chip.dart';
 import '../../widgets/review_widget.dart';
+import 'book_detail_screen.dart';
 
 class CatalogueScreen extends StatefulWidget {
   const CatalogueScreen({super.key});
@@ -210,6 +211,13 @@ class _CatalogueScreenState extends State<CatalogueScreen> {
                             isAvailable: book.isAvailable,
                             coverUrl: book.coverUrl,
                             gradientColors: _getGradientForGenre(book.genre),
+                            onTap: () {
+                              Navigator.of(context).push(
+                                MaterialPageRoute<void>(
+                                  builder: (_) => BookDetailScreen(book: book),
+                                ),
+                              );
+                            },
                             isActionLoading: isBusy,
                             actionLabel: hasRegisteredAlert
                                 ? 'Alerte créée'

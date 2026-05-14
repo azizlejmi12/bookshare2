@@ -10,6 +10,7 @@ class BookCard extends StatelessWidget {
   final bool isAvailable;  // Disponible ou prêté
   final String? coverUrl;  // URL de la couverture
   final List<Color> gradientColors; // Couleurs du dégradé
+  final VoidCallback? onTap;
 
   const BookCard({
     super.key,
@@ -18,72 +19,80 @@ class BookCard extends StatelessWidget {
     required this.isAvailable,
     this.coverUrl,
     required this.gradientColors,
+    this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // IMAGE (photo réseau si disponible, sinon dégradé)
-        ClipRRect(
-          borderRadius: BorderRadius.circular(12),
-          child: SizedBox(
-            width: 140,
-            height: 200,
-            child: (coverUrl != null && coverUrl!.isNotEmpty)
-                ? _buildCoverImage(coverUrl!)
-                : _buildGradientPlaceholder(),
-          ),
-        ),
-        
-        const SizedBox(height: 12), // Espace
-        
-        // TITRE
-        SizedBox(
-          width: 140,
-          child: Text(
-            title,
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF2C3E50),
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: onTap,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // IMAGE (photo réseau si disponible, sinon dégradé)
+            ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: SizedBox(
+                width: 140,
+                height: 200,
+                child: (coverUrl != null && coverUrl!.isNotEmpty)
+                    ? _buildCoverImage(coverUrl!)
+                    : _buildGradientPlaceholder(),
+              ),
             ),
-            maxLines: 2,        // Max 2 lignes
-            overflow: TextOverflow.ellipsis, // "..." si trop long
-          ),
-        ),
-        
-        const SizedBox(height: 4),
-        
-        // AUTEUR
-        Text(
-          author,
-          style: const TextStyle(
-            fontSize: 12,
-            color: Color(0xFF7F8C8D),
-          ),
-        ),
-        
-        const SizedBox(height: 8),
-        
-        // BADGE Disponible/Prêté
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-          decoration: BoxDecoration(
-            color: isAvailable ? const Color(0xFF27AE60) : const Color(0xFFE67E22),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Text(
-            isAvailable ? 'Disponible' : 'Prêté',
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 11,
-              fontWeight: FontWeight.bold,
+
+            const SizedBox(height: 12), // Espace
+
+            // TITRE
+            SizedBox(
+              width: 140,
+              child: Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF2C3E50),
+                ),
+                maxLines: 2,        // Max 2 lignes
+                overflow: TextOverflow.ellipsis, // "..." si trop long
+              ),
             ),
-          ),
+
+            const SizedBox(height: 4),
+
+            // AUTEUR
+            Text(
+              author,
+              style: const TextStyle(
+                fontSize: 12,
+                color: Color(0xFF7F8C8D),
+              ),
+            ),
+
+            const SizedBox(height: 8),
+
+            // BADGE Disponible/Prêté
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              decoration: BoxDecoration(
+                color: isAvailable ? const Color(0xFF27AE60) : const Color(0xFFE67E22),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                isAvailable ? 'Disponible' : 'Prêté',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
         ),
-      ],
+      ),
     );
   }
 

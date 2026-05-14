@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:provider/provider.dart';
 import 'firebase_options.dart';
 import 'providers/auth_provider.dart';
@@ -9,12 +10,19 @@ import 'providers/messages_provider.dart';
 import 'providers/users_provider.dart';
 import 'providers/notifications_provider.dart';
 import 'providers/reviews_provider.dart';
+import 'providers/events_provider.dart';
 import 'views/auth/login_screen.dart';
 import 'views/admin/dashboard_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  if (kIsWeb) {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+  } else {
+    await Firebase.initializeApp();
+  }
 
   runApp(
     MultiProvider(
@@ -26,6 +34,7 @@ void main() async {
         ChangeNotifierProvider(create: (_) => UsersProvider()),
         ChangeNotifierProvider(create: (_) => NotificationsProvider()),
         ChangeNotifierProvider(create: (_) => ReviewsProvider()),
+        ChangeNotifierProvider(create: (_) => EventsProvider()),
       ],
       child: const BookShareApp(),
     ),

@@ -1,29 +1,8 @@
-# Miscellaneous
-*.class
-*.log
-*.pyc
-*.swp
-.DS_Store
-.atom/
-.buildlog/
-.history
-.svn/
-migrate_working_dir/
+# ============================================================================
+# FLUTTER / DART SPECIFIC (.gitignore - Flutter Best Practices)
+# ============================================================================
 
-# IntelliJ related
-*.iml
-*.ipr
-*.iws
-.idea/
-
-# The .vscode folder contains launch configuration and tasks you configure in
-# VS Code which you may wish to be included in version control, so this line
-# is commented out by default.
-#.vscode/
-
-# Flutter/Dart/Pub related
-**/doc/api/
-**/ios/Flutter/.last_build_id
+# Flutter/Dart Related
 .dart_tool/
 .flutter-plugins
 .flutter-plugins-dependencies
@@ -31,14 +10,132 @@ migrate_working_dir/
 .pub-cache/
 .pub/
 /build/
-
-# Symbolication related
+pubspec.lock
+**/doc/api/
+**/ios/Flutter/.last_build_id
 app.*.symbols
-
-# Obfuscation related
 app.*.map.json
 
-# Android Studio will place build artifacts here
-/android/app/debug
-/android/app/profile
-/android/app/release
+# ============================================================================
+# PLATFORM SPECIFIC BUILD ARTIFACTS
+# ============================================================================
+
+# Android
+/android/app/debug/
+/android/app/profile/
+/android/app/release/
+/android/.gradle/
+/android/local.properties
+android/app/profile/
+android/app/debug/
+android/app/release/
+
+# iOS
+/ios/Flutter/Flutter.framework
+/ios/Flutter/Flutter.podspec
+**/ios/**/*.pbxuser
+**/ios/**/*.perspective
+**/ios/**/*.xcworkspace
+**/ios/Pods/
+
+# macOS
+/macos/Flutter/Flutter-Release.podspec
+/macos/Flutter/GeneratedPluginRegistrant.*
+**/macos/Pods/
+
+# Linux
+linux/flutter/ephemeral/
+
+# Windows
+windows/flutter/ephemeral/
+
+# Web
+/web/dart_js_shims/
+.dart_tool/dartpad_log.txt
+
+# ============================================================================
+# IDE / EDITOR SPECIFIC
+# ============================================================================
+
+# IntelliJ / Android Studio
+*.iml
+*.ipr
+*.iws
+.idea/
+.classpath
+.c9/
+*.launch
+.settings/
+*.sublime-workspace
+
+# VS Code
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.history
+.vscode/
+*.code-workspace
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Visual Studio Code
+.vscode/
+
+# ============================================================================
+# OS & SYSTEM FILES
+# ============================================================================
+
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+.env
+.env.local
+
+# ============================================================================
+# NODE / FIREBASE / EXTERNAL DEPENDENCIES
+# ============================================================================
+
+node_modules/
+npm-debug.log*
+yarn-error.log*
+.gradle/
+
+# ============================================================================
+# MISCELLANEOUS
+# ============================================================================
+
+*.class
+*.log
+*.pyc
+*.pyo
+*.swp
+*.swo
+*~
+.atom/
+.buildlog/
+.history
+.svn/
+migrate_working_dir/
+
+# ============================================================================
+# SECURITY - SENSITIVE FILES (Uncomment as needed)
+# ============================================================================
+
+# Firebase Configuration (UNCOMMENT if you want to protect credentials)
+# google-services.json
+# GoogleService-Info.plist
+# firebase_options.dart
+
+# Environment & Secrets
+.env
+.env.local
+.env.*.local
+

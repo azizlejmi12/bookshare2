@@ -190,7 +190,7 @@ class _LoginScreenState extends State<LoginScreen> {
     }
 
     if (success) {
-      _showSuccess('Lien de réinitialisation envoyé à $email');
+      _showSuccess('Si un compte existe pour cette adresse, un e-mail de réinitialisation a été envoyé.');
     } else {
       _showError(
         authProvider.errorMessage ??

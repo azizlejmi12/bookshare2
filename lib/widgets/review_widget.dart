@@ -62,6 +62,7 @@ class _ReviewFormDialogState extends State<ReviewFormDialog> {
           _rating,
           comment,
         );
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Avis modifié avec succès.')),
         );
@@ -78,6 +79,7 @@ class _ReviewFormDialogState extends State<ReviewFormDialog> {
         );
 
         await reviewsProvider.addReview(newReview);
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Avis ajouté avec succès.')),
         );
@@ -87,6 +89,7 @@ class _ReviewFormDialogState extends State<ReviewFormDialog> {
         Navigator.pop(context);
       }
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
@@ -95,7 +98,9 @@ class _ReviewFormDialogState extends State<ReviewFormDialog> {
         ),
       );
     } finally {
-      setState(() => _isSubmitting = false);
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+      }
     }
   }
 

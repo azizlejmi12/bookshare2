@@ -68,12 +68,14 @@ class CatalogueProvider extends ChangeNotifier {
     required String title,
     required String author,
     required String genre,
+    String? summary,
     XFile? coverImage,
   }) {
     return _bookService.addBook(
       title: title,
       author: author,
       genre: genre,
+      summary: summary,
       coverImage: coverImage,
     );
   }
@@ -83,6 +85,7 @@ class CatalogueProvider extends ChangeNotifier {
     required String title,
     required String author,
     required String genre,
+    String? summary,
     XFile? coverImage,
   }) {
     return _bookService.updateBook(
@@ -90,6 +93,7 @@ class CatalogueProvider extends ChangeNotifier {
       title: title,
       author: author,
       genre: genre,
+      summary: summary,
       coverImage: coverImage,
     );
   }
